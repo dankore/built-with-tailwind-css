@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: 12
       - run: yarn run build
-      - run: cp 'build/' '${GITHUB_WORKSPACE}/build2'
+      - run: cp -r 'build/' '${GITHUB_WORKSPACE}/build2'
         
   release:
     name: Release
