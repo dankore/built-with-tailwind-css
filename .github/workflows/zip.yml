@@ -8,7 +8,9 @@ jobs:
   copy:
     runs-on: ubuntu-latest
     steps:
-      - run: cp -R ./src ./build/
+      - name: Build
+        working-directory: ./
+        run: cp -R ./src ./build/
         
   zip-files:
     runs-on: ubuntu-latest
