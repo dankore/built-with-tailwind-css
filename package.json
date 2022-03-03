@@ -4,7 +4,7 @@
   "description": "",
   "source": "popup.html",
   "scripts": {
-    "build": "cp -R ./src ./build/",
+    "build": "cp -R src/ build/",
     "tailwind": "npx tailwindcss -i ./css/input.css  -o ./src/styles.css --watch --minify"
   },
   "keywords": [],

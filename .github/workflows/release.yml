@@ -14,12 +14,11 @@ jobs:
         with:
           node-version: 12
       - run: yarn run build
-      - run: mkdir build2
-      - run: cp -r 'build/' '${{ github.workspace }}/build2'
+      - run: cp -r 'build/' '${{ github.workspace }}'
       - uses: actions/upload-artifact@v1
         with:
           name: my-artifact
-          path: ${{ github.workspace }}/build2
+          path: ${{ github.workspace }}
         
   release:
     name: Release
