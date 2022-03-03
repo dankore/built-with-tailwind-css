@@ -1,5 +1,4 @@
 node_modules
 build
 .github/workflows/upload.yml
-.github/workflows/zip.yml
 .github/workflows/release copy.yml
