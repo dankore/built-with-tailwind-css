@@ -6,13 +6,13 @@ on:
 
 jobs:
   release:
-    name: Push Docker image to DockerHub and GitHub Container Registry. Deploy image to Caprover.
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
       
-      - name: Release
+      - name: Actual Release
         uses: "marvinpinto/action-automatic-releases@latest"
         with: 
            repo_token: ${{ secrets.CR_PAT_BUILT_WITH_TAILWIND_CSS }}
