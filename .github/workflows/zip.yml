@@ -13,3 +13,7 @@ jobs:
         with:
           files: dist/ manifest.json
           dest: result.zip
+      - uses: actions/upload-artifact@v1
+        with:
+          name: zip
+          path: ${{ github.workspace }}/result.zip
