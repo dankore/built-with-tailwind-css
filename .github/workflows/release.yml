@@ -16,7 +16,7 @@ jobs:
       - run: yarn run build
       - uses: actions/upload-artifact@v1
         with:
-          name: my-artifact
+          name: artifacts
           path: ${{ github.workspace }}/build
         
   release:
