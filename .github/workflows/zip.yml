@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build
-      - uses: actions/checkout@v2
+        uses: actions/checkout@v2
         working-directory: ./
         run: cp -R src build/
         
