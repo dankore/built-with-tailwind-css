@@ -1,29 +1,26 @@
-name: Latest Release
+name: Release
 
 on:
-  release:
-    types: [created]
+  push:
+    branches: ['master']
 
 jobs:
-  build:
+  release:
+    name: Push Docker image to DockerHub and GitHub Container Registry. Deploy image to Caprover.
     runs-on: ubuntu-latest
     steps:
+      - name: Check out the repo
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
           node-version: 12
-      - run: npm ci
-
-  publish-gpr:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12
-          registry-url: https://npm.pkg.github.com/
-      - run: npm ci
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - run: run npm ci
+      
+      - name: Release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with: 
+           repo_token: ${{ secrets.CR_PAT_BUILT_WITH_TAILWIND_CSS }}
+           automatic_release_tag: latest
+           draft: false
+           prerelease: false
+           title: ${{ steps.package-version.outputs.current-version}}
