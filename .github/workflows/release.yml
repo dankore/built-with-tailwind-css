@@ -15,7 +15,7 @@ jobs:
           node-version: 12
       - run: yarn run build
       - run: mkdir build2
-      - run: cp -r 'build/' '${GITHUB_WORKSPACE}/build2'
+      - run: cp -r 'build/' '${{ github.workspace }}/build2'
         
   release:
     name: Release
