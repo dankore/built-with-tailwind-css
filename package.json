@@ -1,0 +1,17 @@
+{
+  "name": "finally-has-twcss",
+  "version": "1.0.0",
+  "description": "",
+  "source": "popup.html",
+  "scripts": {
+    "build": "rm -r build && cp -R ./src ./build/",
+    "tailwind": "npx tailwindcss -i ./css/input.css  -o ./src/styles.css --watch --minify"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "postcss": "^8.4.7",
+    "tailwindcss": "^3.0.23"
+  }
+}
