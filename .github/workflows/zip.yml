@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Build
         working-directory: ./
-        run: cp -R ./src ./build/
+        run: cp -R src build/
         
   zip-files:
     runs-on: ubuntu-latest
