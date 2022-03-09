@@ -1,4 +1,4 @@
-<img src="https://res.cloudinary.com/dankoresoftware/image/upload/v1646744182/Others/seo/logo_tq3gik.svg" alt="drawing" width="100%"/>
+<img src="/logo-with-text.svg" alt="drawing" width="100%"/>
 
 # About
 
