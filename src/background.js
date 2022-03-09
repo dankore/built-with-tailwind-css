@@ -43,7 +43,7 @@ const Engine = {
   },
 
   /**
-   * Listen for alarm and act accordingly!
+   * Listen for alarm and act accordingly
    */
   reset(alarmName) {
     chrome.alarms.onAlarm.addListener(async alarm => {
