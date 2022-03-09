@@ -1,10 +1,11 @@
 {
-  "name": "finally-has-twcss",
+  "name": "built-with-tailwind-cs",
   "version": "1.0.0",
   "description": "",
   "source": "popup.html",
   "scripts": {
     "build": "cp -R src/ build/",
+    "zip": "cd build && zip -r ../built-with-tailwind-css.zip *",
     "tailwind": "npx tailwindcss -i ./css/input.css  -o ./src/styles.css --watch --minify"
   },
   "keywords": [],
