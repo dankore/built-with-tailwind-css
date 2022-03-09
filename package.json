@@ -4,8 +4,8 @@
   "description": "",
   "source": "popup.html",
   "scripts": {
-    "build": "cp -R src/ build/",
-    "zip": "cd build && zip -r ../built-with-tailwind-css.zip *",
+    "build": "rm -rf ./build && cp -R src/ build/",
+    "zip": "rm -rf ../built-with-tailwind-css.zip && cd build && zip -r ../built-with-tailwind-css.zip *",
     "tailwind": "npx tailwindcss -i ./css/input.css  -o ./src/styles.css --watch --minify"
   },
   "keywords": [],

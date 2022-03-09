@@ -20,7 +20,7 @@ const Engine = {
     Engine.createAlarm();
 
     // delete local storage and cache after a month
-    Engine.listenForAlarmAndAct('reset');
+    Engine.reset('reset');
 
     chrome.webRequest.onCompleted.addListener(Engine.onStyleSheetRequestComplete, {
       urls: ['http://*/*', 'https://*/*'],
@@ -43,9 +43,9 @@ const Engine = {
   },
 
   /**
-   * Listen for alarm and act accordingly
+   * Listen for alarm and act accordingly!
    */
-  listenForAlarmAndAct(alarmName) {
+  reset(alarmName) {
     chrome.alarms.onAlarm.addListener(async alarm => {
       if (alarm.name === alarmName) {
         try {
@@ -54,9 +54,9 @@ const Engine = {
             .then(() => {
               console.log('storage after reset', Engine.storageCache);
             })
-            .catch(error => console.error('listenForAlarmAndAct', error));
+            .catch(error => console.error('reset', error));
         } catch (error) {
-          console.error('listenForAlarmAndAct', error);
+          console.error('reset', error);
         }
       }
     });
