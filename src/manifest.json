@@ -1,6 +1,6 @@
 {
   "name": "Built with Tailwind CSS",
-  "description": "Tells if a site is has Tailwind CSS",
+  "description": "Tells if a website has Tailwind CSS",
   "version": "1.0.0",
   "manifest_version": 3,
   "background": {

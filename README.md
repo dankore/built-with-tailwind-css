@@ -2,4 +2,4 @@
 
 # About
 
-A Chrome Extension that tells if a website uses Tailwind CSS or not
+A Chrome Extension that Tells if a website has Tailwind CSS
