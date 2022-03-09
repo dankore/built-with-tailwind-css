@@ -1,4 +1,4 @@
-<img src="/logo-with-text.svg" alt="drawing" width="100%"/>
+<img src="/logo-with-text.png" alt="drawing" width="100%"/>
 
 # About
 
