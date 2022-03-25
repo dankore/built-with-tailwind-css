@@ -1,4 +1,4 @@
-<img src="/logo-with-text.png" alt="drawing" width="100%"/>
+<img src="/logo-with-text.png" alt="logo" width="100%"/>
 
 # About
 
@@ -20,5 +20,5 @@ You could:
 
 - Improve the documentation
 - Make another logo
-- Come up with other unique ways the extension could detect TailwindCSS
+- Come up with other unique ways the extension could detect Tailwind CSS
 - ...and more!
