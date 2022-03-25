@@ -6,11 +6,11 @@ A Chrome Extension that Tells if a website has Tailwind CSS
 
 # How it works
 
-Build with TailwindCSS looks for the word 'tailwind' or 'tailwindcss' in a webpage.
+Build with Tailwind CSS looks for the word 'tailwind' or 'tailwindcss' in a webpage.
 
 Earlier versions of Tailwind CSS do not include the above words in the generated stylesheets.
 
-Therefore, this extension works for newer versions of Tailwind CSS.
+Therefore, this extension works for only newer versions of Tailwind CSS - version 2 and above. I need to further investigate this.
 
 # Contribute
 
