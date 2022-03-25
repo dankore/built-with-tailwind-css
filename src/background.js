@@ -19,7 +19,7 @@ const Engine = {
     // create alarm to delete local storage and cache
     Engine.createAlarm();
 
-    // delete local storage and cache after a month
+    // delete local storage and cache after a week
     Engine.reset('reset');
 
     chrome.webRequest.onCompleted.addListener(Engine.onStyleSheetRequestComplete, {
@@ -168,19 +168,22 @@ const Engine = {
   async analyse(text, rootDomain) {
     if (rootDomain) {
       // detect tailwindcss
-      const hasTailwindCss = text.includes('tailwindcss') || text.includes('https://github.com/tailwindcss');
+      const regexHasTailwindcss = /(?<![\w\d])(?:tailwind|tailwindcss)(?![\w\d])/gi;
+      const hasTailwindCss = regexHasTailwindcss.test(text);
 
       // detect tailwindcss version
-      const regex = /(?:^|\s)tailwindcss\s+([^\s]+)/g;
+      const regexHasVersion = /(?:^|\s)tailwindcss\s+([^\s]+)/g;
       const versions = [];
 
       let match;
 
-      while ((match = regex.exec(text))) {
+      while ((match = regexHasVersion.exec(text))) {
         versions.push(match[1]);
       }
 
       await setToStorage(rootDomain, { versions, hasTailwindCss });
+
+      // Cache the data
       Engine.storageCache[rootDomain] = { versions, hasTailwindCss };
     }
   },

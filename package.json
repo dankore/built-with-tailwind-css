@@ -8,7 +8,10 @@
     "tailwind": "npx tailwindcss -i ./css/input.css  -o ./src/styles.css --watch --minify"
   },
   "keywords": [],
-  "author": "",
+  "author": "Adamu Muhammad Dankore",
+  "contributors": [
+    "Adamu Muhammad Dankore"
+  ],
   "license": "ISC",
   "devDependencies": {
     "postcss": "^8.4.7",
