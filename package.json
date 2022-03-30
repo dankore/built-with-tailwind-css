@@ -1,6 +1,6 @@
 {
   "name": "built-with-tailwind-cs",
-  "version": "1.1.0",
+  "version": "1.1.5",
   "description": "",
   "source": "popup.html",
   "scripts": {

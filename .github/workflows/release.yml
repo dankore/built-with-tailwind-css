@@ -11,13 +11,13 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
-      
+
       - name: Actual Release
-        uses: "marvinpinto/action-automatic-releases@latest"
-        with: 
-           repo_token: ${{ secrets.CR_PAT_BUILT_WITH_TAILWIND_CSS }}
-           automatic_release_tag: 1.1.0
-           draft: false
-           prerelease: false
-           files: built-with-tailwind-css.zip
-           title: ${{ steps.package-version.outputs.current-version}}
+        uses: 'marvinpinto/action-automatic-releases@latest'
+        with:
+          repo_token: ${{ secrets.CR_PAT_BUILT_WITH_TAILWIND_CSS }}
+          automatic_release_tag: 1.1.5
+          draft: false
+          prerelease: false
+          files: built-with-tailwind-css.zip
+          title: ${{ steps.package-version.outputs.current-version}}

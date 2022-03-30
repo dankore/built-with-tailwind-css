@@ -168,7 +168,7 @@ const Engine = {
   async analyse(text, rootDomain) {
     if (rootDomain) {
       // detect tailwindcss
-      const regexHasTailwindcss = /(?<![\w\d])(?:tailwind|tailwindcss)(?![\w\d])/gi;
+      const regexHasTailwindcss = /(?<![\w\d])(?:tailwind|tailwindcss|--tw-bg-opacity|--tw-hue-rotate|--tw-translate-x|--tw-ring-offset-width|--tw-ring-shadow|--tw-content)(?![\w\d])/gi;
       const hasTailwindCss = regexHasTailwindcss.test(text);
 
       // detect tailwindcss version
