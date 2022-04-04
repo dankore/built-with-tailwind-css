@@ -152,27 +152,27 @@ const Engine = {
     fetch(url)
       .then(response => response.text())
       .then(async text => {
-        await Engine.analyse(text, rootDomain);
+        await Engine.analyze(text, rootDomain);
       })
       .catch(error => console.log(rootDomain, error));
   },
 
   /**
-   * Analyse stylesheets
+   * analyze stylesheets
    * @param {Object} request
    */
   async onStyleSheetRequestComplete(request) {
     await Engine.fetchStyleSheet(request.url, getUrlProtocolPlusHostname(request.initiator));
   },
 
-  async analyse(text, rootDomain) {
+  async analyze(text, rootDomain) {
     if (rootDomain) {
       // detect tailwindcss
       const regexHasTailwindcss = /(?<![\w\d])(?:tailwind|tailwindcss|--tw-bg-opacity|--tw-hue-rotate|--tw-translate-x|--tw-ring-offset-width|--tw-ring-shadow|--tw-content)(?![\w\d])/gi;
       const hasTailwindCss = regexHasTailwindcss.test(text);
 
       // detect tailwindcss version
-      const regexHasVersion = /(?:^|\s)tailwindcss\s+([^\s]+)/g;
+      const regexHasVersion = /(?:^|\s)tailwindcss\s+([^\s]+)/gi;
       const versions = [];
 
       let match;

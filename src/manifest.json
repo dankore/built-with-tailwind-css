@@ -1,7 +1,7 @@
 {
   "name": "Built with Tailwind CSS",
   "description": "Detects Tailwind CSS use in a web page.",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js"
