@@ -9,7 +9,7 @@
   };
 
   const extractTailwindVersion = (text) => {
-    console.log("Extracting Tailwind version from text:");
+    console.log("Extracting Tailwind version from text");
     const regexHasVersion = /(?:^|\s)tailwindcss\s+v?([^\s]+)/gi;
     const versions = [];
     let match;
