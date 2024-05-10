@@ -1,16 +1,15 @@
-
 // Content script wrapped in an IIFE
 (function () {
   // Helper functions
   const isTailwindClass = (text) => {
-    console.log("Checking for Tailwind class in text:", text);
+    console.log("Checking for Tailwind class in text");
     const hasTailwindReference = text.includes("tailwindcss") || text.includes("https://tailwindcss.com");
     const hasUniqueTailwindFeatures = text.includes("tw-") || text.includes("--tw-"); // Tailwind prefix and custom properties
     return hasTailwindReference || hasUniqueTailwindFeatures;
   };
 
   const extractTailwindVersion = (text) => {
-    console.log("Extracting Tailwind version from text:", text);
+    console.log("Extracting Tailwind version from text:");
     const regexHasVersion = /(?:^|\s)tailwindcss\s+v?([^\s]+)/gi;
     const versions = [];
     let match;
@@ -40,28 +39,45 @@
   const checkStylesheetsForTailwind = async () => {
     console.log("Checking stylesheets for Tailwind CSS...");
     const stylesheets = Array.from(document.styleSheets).filter((sheet) => sheet.href && sheet.href.includes(".css"));
-    const tailwindResults = await Promise.all(stylesheets.map(isTailwindStylesheet));
-    const hasTailwindCSSInStylesheets = tailwindResults.some((result) => result.containsTailwindClass);
-    const tailwindVersion = tailwindResults.find((result) => result.version)?.version;
-
-    return { hasTailwindCSSInStylesheets, tailwindVersion: tailwindVersion || "unknown" };
+    
+    for (const sheet of stylesheets) {
+      const result = await isTailwindStylesheet(sheet);
+      if (result.containsTailwindClass) {
+        console.log("Tailwind CSS found in stylesheet:", sheet.href);
+        return { hasTailwindCSSInStylesheets: true, tailwindVersion: result.version || "unknown" };
+      }
+    }
+    
+    return { hasTailwindCSSInStylesheets: false, tailwindVersion: "unknown" };
   };
 
   const checkStyleTagsForTailwind = () => {
     console.log("Checking style tags for Tailwind CSS...");
     const styleTags = Array.from(document.querySelectorAll("style"));
-    const hasTailwindCSSInStyleTags = styleTags.some((tag) => isTailwindClass(tag.innerHTML));
-    return hasTailwindCSSInStyleTags;
+    
+    for (const tag of styleTags) {
+      if (isTailwindClass(tag.innerHTML)) {
+        console.log("Tailwind CSS found in style tag.");
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   const checkElementsForTailwind = () => {
     console.log("Checking HTML elements for Tailwind CSS...");
     const allElements = Array.from(document.querySelectorAll("*"));
-    const hasTailwindCSSInAttributes = allElements.some((el) => {
+    
+    for (const el of allElements) {
       const classList = Array.from(el.classList);
-      return classList.some((cls) => isTailwindClass(cls));
-    });
-    return hasTailwindCSSInAttributes;
+      if (classList.some((cls) => isTailwindClass(cls))) {
+        console.log("Tailwind CSS found in HTML element attributes.");
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   const checkForTailwindCSS = async () => {
