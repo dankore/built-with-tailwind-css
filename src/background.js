@@ -1,5 +1,3 @@
-// background.js
-
 // Cache for Tailwind detection results (domain -> { hasTailwindCSS, tailwindVersion })
 const domainCache = {};
 
@@ -24,20 +22,31 @@ const updateBadge = (hasTailwindCSS, tailwindVersion = "unknown") => {
   const badgeText = hasTailwindCSS
     ? tailwindVersion === "unknown"
       ? "UN"
-      : `T${tailwindVersion.split(".")[0]}`
+      : `${tailwindVersion}`
     : "";
+
+  const badgeBackgroundColor = hasTailwindCSS ? "#0ea5e9" : "#888";
+  const badgeTextColor = "#ffffff";
+
   chrome.action.setBadgeText({ text: badgeText });
+  chrome.action.setBadgeBackgroundColor({ color: badgeBackgroundColor });
   chrome.action.setTitle({
     title: hasTailwindCSS
       ? `Tailwind CSS v${tailwindVersion}`
       : "This website is not using Tailwind CSS",
   });
+
+  if (chrome.action.setBadgeTextColor) {
+    chrome.action.setBadgeTextColor({ color: badgeTextColor });
+  }
 };
 
 const clearBadge = () => {
   chrome.action.setBadgeText({ text: "" });
-  chrome.action.setTitle({ title: "Tailwind CSS Detector" });
+  chrome.action.setBadgeBackgroundColor({ color: "#888" });
+  chrome.action.setTitle({ title: "Built with Tailwind CSS" });
 };
+
 
 const resetCache = () => {
   Object.keys(domainCache).forEach((domain) => {
@@ -53,8 +62,7 @@ const evaluateTab = (tabId) => {
       tab &&
       tab.url &&
       !tab.url.startsWith("chrome://") &&
-      tab.url !== "about:blank" &&
-      tab.url !== "chrome://newtab/"
+      tab.url !== "about:blank"
     ) {
       const domain = getDomain(tab.url);
       if (domain && domainCache[domain]) {

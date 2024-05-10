@@ -1,4 +1,4 @@
-# Built with Tailwind CSS Detector
+# Built with Tailwind CSS
 
 ![Logo](/logo-with-text.png)
 
@@ -9,7 +9,7 @@
 
 ## About
 
-Built with Tailwind CSS Detector is a tool designed to identify the usage of Tailwind CSS in web pages.
+Built with Tailwind CSS is a tool designed to identify the usage of Tailwind CSS in web pages.
 
 ## How It Works
 
