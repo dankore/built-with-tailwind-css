@@ -1,7 +1,7 @@
 {
   "name": "Built with Tailwind CSS",
   "description": "Detects Tailwind CSS use in a web page.",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js"
@@ -12,8 +12,8 @@
   "permissions": [
     "alarms",
     "storage",
-    "activeTab",
-    "webRequest"
+    "tabs",
+    "scripting"
   ],
   "action": {
     "default_popup": "popup.html",

@@ -1,192 +1,156 @@
-'use strict';
+// background.js
 
-importScripts('/utils.js');
+// Cache for Tailwind detection results (domain -> { hasTailwindCSS, tailwindVersion })
+const domainCache = {};
 
-const { getFromStorage, setToStorage, getCurrentTabRootDomainFromStorage, getUrlProtocolPlusHostname } = Utils;
-
-const Engine = {
-  storageCache: {},
-  /**
-   * Initialize Engine
-   */
-  async init() {
-    // get all stored domains and their values from local storage
-    Engine.storageCache = await Engine.getAllStorageSyncData();
-
-    // on tab change, get the current tab's root domain and check if it has Tailwind CSS
-    this.performOnTabChange();
-
-    // create alarm to delete local storage and cache
-    Engine.createAlarm();
-
-    // delete local storage and cache after a week
-    Engine.reset('reset');
-
-    chrome.webRequest.onCompleted.addListener(Engine.onStyleSheetRequestComplete, {
-      urls: ['http://*/*', 'https://*/*'],
-      types: ['stylesheet'],
-    });
-  },
-
-  disAllowedList: ['https://chrome.google.com', 'https://chrome.google.com/'],
-
-  /**
-   * Create an alarm to delete local storage and cache
-   */
-  createAlarm() {
-    chrome.alarms.create('reset', {
-      // get week in minutes
-      periodInMinutes: 60 * 24 * 7,
-    });
-
-    console.log('Reset alarm set to occur every week');
-  },
-
-  /**
-   * Listen for alarm and act accordingly
-   */
-  reset(alarmName) {
-    chrome.alarms.onAlarm.addListener(async alarm => {
-      if (alarm.name === alarmName) {
-        try {
-          console.log(alarmName, 'Resetting...');
-          Engine.resetCacheAndLocalStorage()
-            .then(() => {
-              console.log('storage after reset', Engine.storageCache);
-            })
-            .catch(error => console.error('reset', error));
-        } catch (error) {
-          console.error('reset', error);
-        }
-      }
-    });
-  },
-
-  /**
-   * Clear caches
-   */
-  async resetCacheAndLocalStorage() {
-    Engine.storageCache = {};
-    await Utils.promisify(chrome.storage.sync, 'clear');
-  },
-
-  /**
-   * Get all storage data
-   * @returns {Promise<any>}
-   * @private
-   * @see https://developer.chrome.com/extensions/storage#type-StorageArea
-   * @see https://developer.chrome.com/extensions/storage#method-StorageArea.get
-   * @see https://developer.chrome.com/extensions/storage#type-StorageArea.StorageArea
-   * */
-  async getAllStorageSyncData() {
-    // Immediately return a promise and start asynchronous work
-    return new Promise((resolve, reject) => {
-      // Asynchronously fetch all data from storage.sync.
-      chrome.storage.sync.get(null, items => {
-        // Pass any observed errors down the promise chain.
-        if (chrome.runtime.lastError) {
-          return reject(chrome.runtime.lastError);
-        }
-        // Pass the data retrieved from storage down the promise chain.
-        resolve(items);
-      });
-    });
-  },
-
-  /**
-   * Perform action on tab change
-   */
-  performOnTabChange() {
-    chrome.tabs.onActivated.addListener(async () => {
-      getCurrentTabRootDomainFromStorage().then(({ storage, rootDomain }) => {
-        // check cache for root domain
-        if (!Engine.storageCache[rootDomain] && Engine.beginsWithHttpProtocols(rootDomain) && !Engine.disAllowedList.includes(rootDomain)) {
-          fetch(rootDomain)
-            .then(async function (response) {
-              // regex get stylesheet
-              const regex = /<link[^>]*rel="stylesheet"[^>]*href="([^"]*)"[^>]*>/g;
-
-              const links = [];
-              let match;
-              const text = await response.text();
-
-              while ((match = regex.exec(text)) !== null) {
-                links.push(match[1]);
-              }
-
-              if (links.length > 0) {
-                for await (const link of links) {
-                  if (Engine.beginsWithHttpProtocols(link) && !Engine.disAllowedList.includes(link)) {
-                    await Engine.fetchStyleSheet(link, rootDomain);
-                  } else {
-                    await Engine.fetchStyleSheet(`${rootDomain}${link}`, rootDomain);
-                  }
-                }
-              } else {
-                // no stylesheet found
-                console.log('no stylesheet found for root domain -', rootDomain);
-
-                await setToStorage(rootDomain, {});
-                Engine.storageCache[rootDomain] = {};
-              }
-            })
-            .catch(error => console.log('fetch error', error));
-        } else {
-          console.log('cache hit', rootDomain);
-        }
-      });
-    });
-  },
-
-  /**
-   * Check if string is starts with https:// or http:// or www.
-   * @param {String} url
-   * */
-  beginsWithHttpProtocols(url) {
-    if (url) {
-      return url.startsWith('https://') || url.startsWith('http://') || url.startsWith('www.');
-    }
-  },
-
-  async fetchStyleSheet(url, rootDomain) {
-    fetch(url)
-      .then(response => response.text())
-      .then(async text => {
-        await Engine.analyze(text, rootDomain);
-      })
-      .catch(error => console.log(rootDomain, error));
-  },
-
-  /**
-   * analyze stylesheets
-   * @param {Object} request
-   */
-  async onStyleSheetRequestComplete(request) {
-    await Engine.fetchStyleSheet(request.url, getUrlProtocolPlusHostname(request.initiator));
-  },
-
-  async analyze(text, rootDomain) {
-    if (rootDomain) {
-      // detect tailwindcss
-      const regexHasTailwindcss = /(?<![\w\d])(?:tailwind|tailwindcss|--tw-bg-opacity|--tw-hue-rotate|--tw-translate-x|--tw-ring-offset-width|--tw-ring-shadow|--tw-content)(?![\w\d])/gi;
-      const hasTailwindCss = regexHasTailwindcss.test(text);
-
-      // detect tailwindcss version
-      const regexHasVersion = /(?:^|\s)tailwindcss\s+([^\s]+)/gi;
-      const versions = [];
-
-      let match;
-
-      while ((match = regexHasVersion.exec(text))) {
-        versions.push(match[1]);
-      }
-
-      await setToStorage(rootDomain, { versions, hasTailwindCss });
-
-      // Cache the data
-      Engine.storageCache[rootDomain] = { versions, hasTailwindCss };
-    }
-  },
+// Helper functions
+const getDomain = (url) => {
+  try {
+    const { hostname } = new URL(url);
+    return hostname;
+  } catch (error) {
+    console.error("Error parsing URL:", error);
+    return null;
+  }
 };
 
-Engine.init();
+const updateCacheAndBadge = (domain, hasTailwindCSS, tailwindVersion) => {
+  domainCache[domain] = { hasTailwindCSS, tailwindVersion };
+  console.log(`Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`);
+  updateBadge(hasTailwindCSS, tailwindVersion);
+};
+
+const updateBadge = (hasTailwindCSS, tailwindVersion = "unknown") => {
+  const badgeText = hasTailwindCSS
+    ? tailwindVersion === "unknown"
+      ? "UN"
+      : `T${tailwindVersion.split(".")[0]}`
+    : "";
+  chrome.action.setBadgeText({ text: badgeText });
+  chrome.action.setTitle({
+    title: hasTailwindCSS
+      ? `Tailwind CSS v${tailwindVersion}`
+      : "This website is not using Tailwind CSS",
+  });
+};
+
+const clearBadge = () => {
+  chrome.action.setBadgeText({ text: "" });
+  chrome.action.setTitle({ title: "Tailwind CSS Detector" });
+};
+
+const resetCache = () => {
+  Object.keys(domainCache).forEach((domain) => {
+    delete domainCache[domain];
+  });
+  console.log("Cache reset successfully via scheduled alarm");
+  clearBadge();
+};
+
+const evaluateTab = (tabId) => {
+  chrome.tabs.get(tabId, (tab) => {
+    if (
+      tab &&
+      tab.url &&
+      !tab.url.startsWith("chrome://") &&
+      tab.url !== "about:blank" &&
+      tab.url !== "chrome://newtab/"
+    ) {
+      const domain = getDomain(tab.url);
+      if (domain && domainCache[domain]) {
+        console.log(`Cache hit: ${domain}`);
+        updateBadge(domainCache[domain].hasTailwindCSS, domainCache[domain].tailwindVersion);
+      } else {
+        console.log(`Cache miss: ${domain}`);
+        chrome.scripting.executeScript(
+          {
+            target: { tabId },
+            files: ["content.js"],
+          },
+          () => {
+            chrome.tabs.sendMessage(tabId, { action: "checkForTailwindCSS" }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.error("Error sending message to tab:", chrome.runtime.lastError.message);
+                clearBadge();
+              } else {
+                console.log(`Response from content script for ${domain}:`, response);
+                if (response && typeof response.hasTailwindCSS !== "undefined") {
+                  updateCacheAndBadge(domain, response.hasTailwindCSS, response.tailwindVersion);
+                }
+              }
+            });
+          }
+        );
+      }
+    } else {
+      clearBadge();
+      console.log(`Skipping tab with URL: ${tab ? tab.url : "unknown"}`);
+    }
+  });
+};
+
+// Event listeners
+chrome.tabs.onActivated.addListener(({ tabId }) => evaluateTab(tabId));
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete") {
+    evaluateTab(tabId);
+  }
+});
+chrome.tabs.onRemoved.addListener(clearBadge);
+
+// Create an alarm to reset the cache every two weeks
+chrome.alarms.create("resetCacheAlarm", { periodInMinutes: 20160 });
+
+// Listen for the cache reset alarm
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "resetCacheAlarm") {
+    resetCache();
+  }
+});
+
+// Listen for messages from the popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("Message received in background script:", message);
+
+  if (message.requestUpdate) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length > 0) {
+        const tabId = tabs[0].id;
+        chrome.tabs.get(tabId, (tab) => {
+          if (tab && tab.url) {
+            const domain = getDomain(tab.url);
+            if (domain && domainCache[domain]) {
+              console.log(`Popup Cache hit: ${domain}`);
+              sendResponse(domainCache[domain]);
+            } else {
+              console.log(`Popup Cache miss: ${domain}`);
+              evaluateTab(tabId);
+              sendResponse({ hasTailwindCSS: false, tailwindVersion: "unknown" });
+            }
+          }
+        });
+      } else {
+        console.log("No active tab available");
+      }
+    });
+    return true; // To allow asynchronous `sendResponse`
+  }
+
+  if (typeof message.hasTailwindCSS !== "undefined") {
+    const tabId = sender.tab?.id;
+    if (tabId) {
+      chrome.tabs.get(tabId, (tab) => {
+        if (tab && tab.url) {
+          const domain = getDomain(tab.url);
+          if (domain) {
+            updateCacheAndBadge(domain, message.hasTailwindCSS, message.tailwindVersion);
+          }
+        }
+      });
+    }
+  } else {
+    console.log("Invalid message received");
+  }
+  sendResponse({ status: "done" });
+  return true; // Ensure the sendResponse is maintained
+});
