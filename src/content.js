@@ -4,12 +4,12 @@
   const isTailwindClass = (text) => {
     console.log("Checking for Tailwind class in text");
     const hasTailwindReference = text.includes("tailwindcss") || text.includes("https://tailwindcss.com");
-    const hasUniqueTailwindFeatures = text.includes("tw-") || text.includes("--tw-"); // Tailwind prefix and custom properties
+    const hasUniqueTailwindFeatures = text.includes("tw-") || text.includes("--tw-");
     return hasTailwindReference || hasUniqueTailwindFeatures;
   };
 
   const extractTailwindVersion = (text) => {
-    console.log("Extracting Tailwind version from text:");
+    console.log("Extracting Tailwind version from text");
     const regexHasVersion = /(?:^|\s)tailwindcss\s+v?([^\s]+)/gi;
     const versions = [];
     let match;
@@ -127,7 +127,7 @@
     console.log("Message received in content.js:", message);
 
     if (message.action === "checkForTailwindCSS") {
-      checkForTailwindCSS(); // Start detection
+      checkForTailwindCSS();
       sendResponse({ status: "CSS Check Initiated" });
     } else {
       console.log("Unknown action:", message.action);
