@@ -1,31 +1,31 @@
-<img src="/logo-with-text.png" alt="logo" width="100%"/>
+# Built with Tailwind CSS Detector
 
-Important links:
-1. GitHub: https://github.com/dankore/built-with-tailwind-css
-2. Documentation: https://dankore.github.io/built-with-tailwind-css
+![Logo](/logo-with-text.png)
 
-About:
-Detects Tailwind CSS use in a web page.
+## Important Links
 
-If it does, it displays the version and a green check mark. 
+1. [GitHub Repository](https://github.com/dankore/built-with-tailwind-css)
+2. [Documentation](https://dankore.github.io/built-with-tailwind-css)
 
-If not, it displays a red "X" icon and "No Tailwind CSS detected".
+## About
 
-How it works:
-Build with Tailwind CSS looks for the word ‘tailwind’, ‘tailwindcss’,  '--tw-bg-opacity', and more in a web page's style sheets.
+Built with Tailwind CSS Detector is a tool designed to identify the usage of Tailwind CSS in web pages.
 
-Earlier versions of Tailwind CSS do not include the above words in the generated style sheets.
+## How It Works
 
-Therefore, this extension works for only newer versions of Tailwind CSS - version 2 and above.
+This detector scans a web page's style sheets for keywords and patterns associated with Tailwind CSS, including 'tailwindcss', 'https://tailwindcss.com', '--tw-', and 'tw-'.
 
-Contribute:
-Please feel free to make a pull request with any improvement to this extension
+## Contributions
 
-You could:
-1. Improve the documentation
-2. Make another logo
-3. Come up with other unique ways the extension could detect Tailwind CSS
-4. …and more!
+Contributions are welcome! Feel free to submit pull requests with any enhancements or fixes. Here are some suggestions for contributions:
 
-GitHub: https://github.com/dankore/built-with-tailwind-css
-Documentation: https://dankore.github.io/built-with-tailwind-css
+- Improve the documentation
+- Design a new logo
+- Propose novel methods for detecting Tailwind CSS usage
+- And much more!
+
+## Get Involved
+
+GitHub Repository: [https://github.com/dankore/built-with-tailwind-css](https://github.com/dankore/built-with-tailwind-css)
+
+Documentation: [https://dankore.github.io/built-with-tailwind-css](https://dankore.github.io/built-with-tailwind-css)
