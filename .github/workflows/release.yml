@@ -1,23 +1,37 @@
-name: Release
+name: Releases
 
 on:
   push:
-    branches: ['master']
+    tags:
+      - '*'
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
-      - name: Actual Release
-        uses: 'marvinpinto/action-automatic-releases@latest'
+      - name: Create Zip Archive
+        run: |
+          mkdir -p build
+          (cd src && zip -r ../build/built-with-tailwind-css.zip .)
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
         with:
-          repo_token: ${{ secrets.CR_PAT_BUILT_WITH_TAILWIND_CSS }}
-          automatic_release_tag: 2.0.0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+          name: Release v${{ github.ref_name }}
+          artifacts: "build/built-with-tailwind-css.zip"
+          replacesArtifacts: true
           draft: false
           prerelease: false
-          files: built-with-tailwind-css.zip
-          title: ${{ steps.package-version.outputs.current-version}}
+          body: |
+            **New Release v${{ github.ref_name }} - Built with Tailwind CSS**
+            - Detects Tailwind CSS use in a web page.
+            - Includes the latest updates to the Built with Tailwind CSS extension.
