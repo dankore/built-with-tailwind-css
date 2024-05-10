@@ -1,4 +1,4 @@
-const tailwindIcon = document.getElementById("tailwind-icon");
+const tailwindIcon = document.getElementById("has-tailwind-icon");
 const fallbackIcon = document.getElementById("fallback-icon");
 const messageElement = document.getElementById("message");
 
@@ -6,8 +6,8 @@ const updateUI = (hasTailwindCSS, tailwindVersion) => {
   if (messageElement) {
     messageElement.textContent = hasTailwindCSS
       ? tailwindVersion === "unknown"
-        ? "Has Tailwind CSS"
-        : `Has Tailwind CSS v${tailwindVersion}`
+        ? "Tailwind CSS"
+        : `Tailwind CSS v${tailwindVersion}`
       : "No Tailwind CSS";
   }
 
