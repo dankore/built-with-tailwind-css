@@ -6,7 +6,7 @@ const updateUI = (hasTailwindCSS, tailwindVersion) => {
   if (messageElement) {
     messageElement.textContent = hasTailwindCSS
       ? tailwindVersion === "unknown"
-        ? "Tailwind CSS"
+        ? "Tailwind CSS Version Unknown"
         : `Tailwind CSS v${tailwindVersion}`
       : "No Tailwind CSS";
   }

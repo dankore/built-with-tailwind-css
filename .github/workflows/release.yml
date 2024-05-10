@@ -34,5 +34,5 @@ jobs:
           allowUpdates: true
           body: |
             **New Release v${{ github.ref_name }} - Built with Tailwind CSS**
-            - Detects Tailwind CSS use in a web page.
+            - Built with Tailwind CSS is a tool designed to identify the usage of Tailwind CSS in web pages.
             - Includes the latest updates to the Built with Tailwind CSS extension.
