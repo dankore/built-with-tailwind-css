@@ -21,7 +21,7 @@ jobs:
           mkdir -p build
           (cd src && zip -r ../build/built-with-tailwind-css.zip .)
 
-      - name: Create Release
+      - name: Create or Update Release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -31,6 +31,7 @@ jobs:
           replacesArtifacts: true
           draft: false
           prerelease: false
+          allowUpdates: true
           body: |
             **New Release v${{ github.ref_name }} - Built with Tailwind CSS**
             - Detects Tailwind CSS use in a web page.
