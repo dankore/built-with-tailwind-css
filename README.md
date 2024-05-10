@@ -9,11 +9,11 @@
 
 ## About
 
-Built with Tailwind CSS is a tool designed to identify the usage of Tailwind CSS in web pages.
+Built with Tailwind CSS is a Chrome Extension that identifies the usage of Tailwind CSS in web pages.
 
 ## How It Works
 
-This detector scans a web page's style sheets for keywords and patterns associated with Tailwind CSS, including 'tailwindcss', 'https://tailwindcss.com', '--tw-', and 'tw-'.
+The Extension scans a web page's CSS for keywords and patterns associated with Tailwind CSS, including 'tailwindcss', 'https://tailwindcss.com', '--tw-', and 'tw-'.
 
 ## Contributions
 
