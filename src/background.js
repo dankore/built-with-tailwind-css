@@ -14,7 +14,9 @@ const getDomain = (url) => {
 
 const updateCacheAndBadge = (domain, hasTailwindCSS, tailwindVersion) => {
   domainCache[domain] = { hasTailwindCSS, tailwindVersion };
-  console.log(`Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`);
+  console.log(
+    `Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`
+  );
   updateBadge(hasTailwindCSS, tailwindVersion);
 };
 
@@ -47,7 +49,6 @@ const clearBadge = () => {
   chrome.action.setTitle({ title: "Built with Tailwind CSS" });
 };
 
-
 const resetCache = () => {
   Object.keys(domainCache).forEach((domain) => {
     delete domainCache[domain];
@@ -56,18 +57,38 @@ const resetCache = () => {
   clearBadge();
 };
 
+const isValidUrl = (tab) => {
+  if (!tab || !tab.url) {
+    return false;
+  }
+
+  const invalidPrefixes = [
+    "chrome://",
+    "chrome-extension://",
+    "about:",
+    "data:",
+    "file://",
+    "blob:",
+    "devtools://",
+    "view-source:",
+    "chrome-devtools://",
+    "javascript:",
+    "about:blank",
+  ];
+
+  return !invalidPrefixes.some(prefix => tab.url.startsWith(prefix));
+};
+
 const evaluateTab = (tabId) => {
   chrome.tabs.get(tabId, (tab) => {
-    if (
-      tab &&
-      tab.url &&
-      !tab.url.startsWith("chrome://") &&
-      tab.url !== "about:blank"
-    ) {
+    if (isValidUrl(tab)) {
       const domain = getDomain(tab.url);
       if (domain && domainCache[domain]) {
         console.log(`Cache hit: ${domain}`);
-        updateBadge(domainCache[domain].hasTailwindCSS, domainCache[domain].tailwindVersion);
+        updateBadge(
+          domainCache[domain].hasTailwindCSS,
+          domainCache[domain].tailwindVersion
+        );
       } else {
         console.log(`Cache miss: ${domain}`);
         chrome.scripting.executeScript(
@@ -76,17 +97,34 @@ const evaluateTab = (tabId) => {
             files: ["content.js"],
           },
           () => {
-            chrome.tabs.sendMessage(tabId, { action: "checkForTailwindCSS" }, (response) => {
-              if (chrome.runtime.lastError) {
-                console.error("Error sending message to tab:", chrome.runtime.lastError.message);
-                clearBadge();
-              } else {
-                console.log(`Response from content script for ${domain}:`, response);
-                if (response && typeof response.hasTailwindCSS !== "undefined") {
-                  updateCacheAndBadge(domain, response.hasTailwindCSS, response.tailwindVersion);
+            chrome.tabs.sendMessage(
+              tabId,
+              { action: "checkForTailwindCSS" },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  console.error(
+                    "Error sending message to tab:",
+                    chrome.runtime.lastError.message
+                  );
+                  clearBadge();
+                } else {
+                  console.log(
+                    `Response from content script for ${domain}:`,
+                    response
+                  );
+                  if (
+                    response &&
+                    typeof response.hasTailwindCSS !== "undefined"
+                  ) {
+                    updateCacheAndBadge(
+                      domain,
+                      response.hasTailwindCSS,
+                      response.tailwindVersion
+                    );
+                  }
                 }
               }
-            });
+            );
           }
         );
       }
@@ -133,7 +171,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             } else {
               console.log(`Popup Cache miss: ${domain}`);
               evaluateTab(tabId);
-              sendResponse({ hasTailwindCSS: false, tailwindVersion: "unknown" });
+              sendResponse({
+                hasTailwindCSS: false,
+                tailwindVersion: "unknown",
+              });
             }
           }
         });
@@ -151,7 +192,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (tab && tab.url) {
           const domain = getDomain(tab.url);
           if (domain) {
-            updateCacheAndBadge(domain, message.hasTailwindCSS, message.tailwindVersion);
+            updateCacheAndBadge(
+              domain,
+              message.hasTailwindCSS,
+              message.tailwindVersion
+            );
           }
         }
       });
