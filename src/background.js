@@ -74,6 +74,7 @@ const isValidUrl = (tab) => {
     "chrome-devtools://",
     "javascript:",
     "about:blank",
+    "chromewebstore.google.com"
   ];
 
   return !invalidPrefixes.some(prefix => tab.url.startsWith(prefix));
