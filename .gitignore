@@ -2,3 +2,4 @@ node_modules
 .github/workflows/upload.yml
 .github/workflows/release copy.yml
 build/
+sand.js

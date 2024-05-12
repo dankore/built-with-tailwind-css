@@ -4,7 +4,7 @@
   const isTailwindClass = (text) => {
     console.log("Checking for Tailwind class in text");
     const hasTailwindReference = text.includes("tailwindcss") || text.includes("https://tailwindcss.com");
-    const hasUniqueTailwindFeatures = text.includes("tw-") || text.includes("--tw-");
+    const hasUniqueTailwindFeatures = text.includes("--tw-");
     return hasTailwindReference || hasUniqueTailwindFeatures;
   };
 
