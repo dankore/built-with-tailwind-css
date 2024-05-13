@@ -62,23 +62,37 @@ const isValidUrl = (tab) => {
     return false;
   }
 
-  const invalidPrefixes = [
-    "chrome://",
-    "chrome-extension://",
+  const url = new URL(tab.url);
+  const hostname = url.hostname;
+
+  // List of hostnames that are known to be invalid for scripting
+  const invalidHostnames = ["chrome.google.com", "chromewebstore.google.com"];
+
+  // Check if the hostname is one of the known invalid ones
+  const isInvalidHostname = invalidHostnames.some((invalidHostname) =>
+    hostname.endsWith(invalidHostname)
+  );
+
+  // List of protocols that are considered invalid for scripting
+  const invalidProtocols = [
+    "chrome:",
     "about:",
     "data:",
-    "file://",
+    "file:",
     "blob:",
-    "devtools://",
+    "devtools:",
     "view-source:",
-    "chrome-devtools://",
     "javascript:",
-    "about:blank",
-    "chrome.google.com",
-    "chromewebstore.google.com"
+    "chrome-extension:",
+    "chrome-devtools:",
   ];
 
-  return !invalidPrefixes.some(prefix => tab.url.startsWith(prefix));
+  // Check if the protocol is one of the known invalid ones
+  const isInvalidProtocol = invalidProtocols.some((protocol) =>
+    url.protocol.startsWith(protocol)
+  );
+
+  return !isInvalidHostname && !isInvalidProtocol;
 };
 
 const evaluateTab = (tabId) => {
