@@ -74,6 +74,7 @@ const isValidUrl = (tab) => {
     "chrome-devtools://",
     "javascript:",
     "about:blank",
+    "chrome.google.com",
     "chromewebstore.google.com"
   ];
 
