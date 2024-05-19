@@ -19,32 +19,44 @@ const updateCacheAndBadge = (domain, tabId, hasTailwindCSS, tailwindVersion) => 
 };
 
 const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = "unknown") => {
-  const badgeText = hasTailwindCSS
-    ? tailwindVersion === "unknown"
-      ? "UN"
-      : `${tailwindVersion}`
-    : "";
-  const badgeBackgroundColor = hasTailwindCSS ? "#0ea5e9" : "#888";
-  const badgeTextColor = "#ffffff";
+  chrome.tabs.get(tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab) {
+      console.warn(`Cannot update badge: No tab with id ${tabId}`);
+      return;
+    }
+    const badgeText = hasTailwindCSS
+      ? tailwindVersion === "unknown"
+        ? "UN"
+        : `${tailwindVersion}`
+      : "";
+    const badgeBackgroundColor = hasTailwindCSS ? "#0ea5e9" : "#888";
+    const badgeTextColor = "#ffffff";
 
-  chrome.action.setBadgeText({ tabId, text: badgeText });
-  chrome.action.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
-  chrome.action.setTitle({
-    tabId,
-    title: hasTailwindCSS
-      ? `Tailwind CSS v${tailwindVersion}`
-      : "This website is not using Tailwind CSS",
+    chrome.action.setBadgeText({ tabId, text: badgeText });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
+    chrome.action.setTitle({
+      tabId,
+      title: hasTailwindCSS
+        ? `Tailwind CSS v${tailwindVersion}`
+        : "This website is not using Tailwind CSS",
+    });
+
+    if (chrome.action.setBadgeTextColor) {
+      chrome.action.setBadgeTextColor({ tabId, color: badgeTextColor });
+    }
   });
-
-  if (chrome.action.setBadgeTextColor) {
-    chrome.action.setBadgeTextColor({ tabId, color: badgeTextColor });
-  }
 };
 
 const clearBadge = (tabId) => {
-  chrome.action.setBadgeText({ tabId, text: "" });
-  chrome.action.setBadgeBackgroundColor({ tabId, color: "#888" });
-  chrome.action.setTitle({ tabId, title: "Built with Tailwind CSS" });
+  chrome.tabs.get(tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab) {
+      console.warn(`Cannot clear badge: No tab with id ${tabId}`);
+      return;
+    }
+    chrome.action.setBadgeText({ tabId, text: "" });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: "#888" });
+    chrome.action.setTitle({ tabId, title: "Built with Tailwind CSS" });
+  });
 };
 
 const resetCache = () => {
@@ -97,6 +109,10 @@ const isValidUrl = (tab) => {
 
 const evaluateTab = (tabId) => {
   chrome.tabs.get(tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab) {
+      console.warn(`Cannot evaluate tab: No tab with id ${tabId}`);
+      return;
+    }
     if (isValidUrl(tab)) {
       const domain = getDomain(tab.url);
       if (domain && domainCache[domain]) {
