@@ -12,41 +12,39 @@ const getDomain = (url) => {
   }
 };
 
-const updateCacheAndBadge = (domain, hasTailwindCSS, tailwindVersion) => {
+const updateCacheAndBadge = (domain, tabId, hasTailwindCSS, tailwindVersion) => {
   domainCache[domain] = { hasTailwindCSS, tailwindVersion };
-  console.log(
-    `Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`
-  );
-  updateBadge(hasTailwindCSS, tailwindVersion);
+  console.log(`Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`);
+  updateBadge(tabId, hasTailwindCSS, tailwindVersion);
 };
 
-const updateBadge = (hasTailwindCSS, tailwindVersion = "unknown") => {
+const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = "unknown") => {
   const badgeText = hasTailwindCSS
     ? tailwindVersion === "unknown"
       ? "UN"
       : `${tailwindVersion}`
     : "";
-
   const badgeBackgroundColor = hasTailwindCSS ? "#0ea5e9" : "#888";
   const badgeTextColor = "#ffffff";
 
-  chrome.action.setBadgeText({ text: badgeText });
-  chrome.action.setBadgeBackgroundColor({ color: badgeBackgroundColor });
+  chrome.action.setBadgeText({ tabId, text: badgeText });
+  chrome.action.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
   chrome.action.setTitle({
+    tabId,
     title: hasTailwindCSS
       ? `Tailwind CSS v${tailwindVersion}`
       : "This website is not using Tailwind CSS",
   });
 
   if (chrome.action.setBadgeTextColor) {
-    chrome.action.setBadgeTextColor({ color: badgeTextColor });
+    chrome.action.setBadgeTextColor({ tabId, color: badgeTextColor });
   }
 };
 
-const clearBadge = () => {
-  chrome.action.setBadgeText({ text: "" });
-  chrome.action.setBadgeBackgroundColor({ color: "#888" });
-  chrome.action.setTitle({ title: "Built with Tailwind CSS" });
+const clearBadge = (tabId) => {
+  chrome.action.setBadgeText({ tabId, text: "" });
+  chrome.action.setBadgeBackgroundColor({ tabId, color: "#888" });
+  chrome.action.setTitle({ tabId, title: "Built with Tailwind CSS" });
 };
 
 const resetCache = () => {
@@ -54,7 +52,9 @@ const resetCache = () => {
     delete domainCache[domain];
   });
   console.log("Cache reset successfully via scheduled alarm");
-  clearBadge();
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => clearBadge(tab.id));
+  });
 };
 
 const isValidUrl = (tab) => {
@@ -101,10 +101,7 @@ const evaluateTab = (tabId) => {
       const domain = getDomain(tab.url);
       if (domain && domainCache[domain]) {
         console.log(`Cache hit: ${domain}`);
-        updateBadge(
-          domainCache[domain].hasTailwindCSS,
-          domainCache[domain].tailwindVersion
-        );
+        updateBadge(tabId, domainCache[domain].hasTailwindCSS, domainCache[domain].tailwindVersion);
       } else {
         console.log(`Cache miss: ${domain}`);
         chrome.scripting.executeScript(
@@ -118,25 +115,12 @@ const evaluateTab = (tabId) => {
               { action: "checkForTailwindCSS" },
               (response) => {
                 if (chrome.runtime.lastError) {
-                  console.error(
-                    "Error sending message to tab:",
-                    chrome.runtime.lastError.message
-                  );
-                  clearBadge();
+                  console.error("Error sending message to tab:", chrome.runtime.lastError.message);
+                  clearBadge(tabId);
                 } else {
-                  console.log(
-                    `Response from content script for ${domain}:`,
-                    response
-                  );
-                  if (
-                    response &&
-                    typeof response.hasTailwindCSS !== "undefined"
-                  ) {
-                    updateCacheAndBadge(
-                      domain,
-                      response.hasTailwindCSS,
-                      response.tailwindVersion
-                    );
+                  console.log(`Response from content script for ${domain}:`, response);
+                  if (response && typeof response.hasTailwindCSS !== "undefined") {
+                    updateCacheAndBadge(domain, tabId, response.hasTailwindCSS, response.tailwindVersion);
                   }
                 }
               }
@@ -145,7 +129,7 @@ const evaluateTab = (tabId) => {
         );
       }
     } else {
-      clearBadge();
+      clearBadge(tabId);
       console.log(`Skipping tab with URL: ${tab ? tab.url : "unknown"}`);
     }
   });
@@ -158,7 +142,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     evaluateTab(tabId);
   }
 });
-chrome.tabs.onRemoved.addListener(clearBadge);
+chrome.tabs.onRemoved.addListener((tabId) => {
+  clearBadge(tabId);
+  const domain = Object.keys(domainCache).find(domain => domainCache[domain].tabId === tabId);
+  if (domain) {
+    delete domainCache[domain];
+  }
+});
 
 // Create an alarm to reset the cache every two weeks
 chrome.alarms.create("resetCacheAlarm", { periodInMinutes: 20160 });
@@ -208,11 +198,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (tab && tab.url) {
           const domain = getDomain(tab.url);
           if (domain) {
-            updateCacheAndBadge(
-              domain,
-              message.hasTailwindCSS,
-              message.tailwindVersion
-            );
+            updateCacheAndBadge(domain, tabId, message.hasTailwindCSS, message.tailwindVersion);
           }
         }
       });
