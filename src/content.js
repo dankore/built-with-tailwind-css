@@ -24,7 +24,7 @@
   };
 
   const checkStylesheetsForTailwind = async () => {
-    const stylesheets = Array.from(document.styleSheets).filter(sheet => sheet.href && sheet.href.includes(".css"));
+    const stylesheets = Array.from(document.styleSheets).filter(sheet => sheet?.href.includes(".css"));
     for (const sheet of stylesheets) {
       const result = await isTailwindStylesheet(sheet);
       if (result.containsTailwindClass) {

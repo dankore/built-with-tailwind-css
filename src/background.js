@@ -18,27 +18,30 @@ const updateCacheAndBadge = (domain, tabId, hasTailwindCSS, tailwindVersion) => 
   updateBadge(tabId, hasTailwindCSS, tailwindVersion);
 };
 
-const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = "unknown") => {
-  chrome.tabs.get(tabId, (tab) => {
+const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = 'unknown') => {
+  chrome.tabs.get(tabId, tab => {
     if (chrome.runtime.lastError || !tab) {
       console.warn(`Cannot update badge: No tab with id ${tabId}`);
       return;
     }
-    const badgeText = hasTailwindCSS
-      ? tailwindVersion === "unknown"
-        ? "UN"
-        : `${tailwindVersion}`
-      : "";
-    const badgeBackgroundColor = hasTailwindCSS ? "#0ea5e9" : "#888";
-    const badgeTextColor = "#ffffff";
+
+    let badgeText = '';
+    if (hasTailwindCSS) {
+      if (tailwindVersion === 'unknown') {
+        badgeText = 'UN';
+      } else {
+        badgeText = `${tailwindVersion}`;
+      }
+    }
+
+    const badgeBackgroundColor = hasTailwindCSS ? '#0ea5e9' : '#888';
+    const badgeTextColor = '#ffffff';
 
     chrome.action.setBadgeText({ tabId, text: badgeText });
     chrome.action.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
     chrome.action.setTitle({
       tabId,
-      title: hasTailwindCSS
-        ? `Tailwind CSS v${tailwindVersion}`
-        : "This website is not using Tailwind CSS",
+      title: hasTailwindCSS ? `Tailwind CSS v${tailwindVersion}` : 'This website is not using Tailwind CSS',
     });
 
     if (chrome.action.setBadgeTextColor) {
@@ -70,7 +73,7 @@ const resetCache = () => {
 };
 
 const isValidUrl = (tab) => {
-  if (!tab || !tab.url) {
+  if (!tab?.url) {
     return false;
   }
 
@@ -185,7 +188,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (tabs.length > 0) {
         const tabId = tabs[0].id;
         chrome.tabs.get(tabId, (tab) => {
-          if (tab && tab.url) {
+          if (tab?.url) {
             const domain = getDomain(tab.url);
             if (domain && domainCache[domain]) {
               console.log(`Popup Cache hit: ${domain}`);
@@ -211,7 +214,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     if (tabId) {
       chrome.tabs.get(tabId, (tab) => {
-        if (tab && tab.url) {
+        if (tab.url) {
           const domain = getDomain(tab.url);
           if (domain) {
             updateCacheAndBadge(domain, tabId, message.hasTailwindCSS, message.tailwindVersion);
