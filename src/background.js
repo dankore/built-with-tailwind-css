@@ -2,12 +2,12 @@
 const domainCache = {};
 
 // Helper functions
-const getDomain = (url) => {
+const getDomain = url => {
   try {
     const { hostname } = new URL(url);
     return hostname;
   } catch (error) {
-    console.error("Error parsing URL:", error);
+    console.error('Error parsing URL:', error);
     return null;
   }
 };
@@ -50,29 +50,29 @@ const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = 'unknown') => {
   });
 };
 
-const clearBadge = (tabId) => {
-  chrome.tabs.get(tabId, (tab) => {
+const clearBadge = tabId => {
+  chrome.tabs.get(tabId, tab => {
     if (chrome.runtime.lastError || !tab) {
       console.warn(`Cannot clear badge: No tab with id ${tabId}`);
       return;
     }
-    chrome.action.setBadgeText({ tabId, text: "" });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: "#888" });
-    chrome.action.setTitle({ tabId, title: "Built with Tailwind CSS" });
+    chrome.action.setBadgeText({ tabId, text: '' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#888' });
+    chrome.action.setTitle({ tabId, title: 'Built with Tailwind CSS' });
   });
 };
 
 const resetCache = () => {
-  Object.keys(domainCache).forEach((domain) => {
+  Object.keys(domainCache).forEach(domain => {
     delete domainCache[domain];
   });
-  console.log("Cache reset successfully via scheduled alarm");
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach((tab) => clearBadge(tab.id));
+  console.log('Cache reset successfully via scheduled alarm');
+  chrome.tabs.query({}, tabs => {
+    tabs.forEach(tab => clearBadge(tab.id));
   });
 };
 
-const isValidUrl = (tab) => {
+const isValidUrl = tab => {
   if (!tab?.url) {
     return false;
   }
@@ -81,37 +81,22 @@ const isValidUrl = (tab) => {
   const hostname = url.hostname;
 
   // List of hostnames that are known to be invalid for scripting
-  const invalidHostnames = ["chrome.google.com", "chromewebstore.google.com"];
+  const invalidHostnames = ['chrome.google.com', 'chromewebstore.google.com'];
 
   // Check if the hostname is one of the known invalid ones
-  const isInvalidHostname = invalidHostnames.some((invalidHostname) =>
-    hostname.endsWith(invalidHostname)
-  );
+  const isInvalidHostname = invalidHostnames.some(invalidHostname => hostname.endsWith(invalidHostname));
 
   // List of protocols that are considered invalid for scripting
-  const invalidProtocols = [
-    "chrome:",
-    "about:",
-    "data:",
-    "file:",
-    "blob:",
-    "devtools:",
-    "view-source:",
-    "javascript:",
-    "chrome-extension:",
-    "chrome-devtools:",
-  ];
+  const invalidProtocols = ['chrome:', 'about:', 'data:', 'file:', 'blob:', 'devtools:', 'view-source:', 'javascript:', 'chrome-extension:', 'chrome-devtools:'];
 
   // Check if the protocol is one of the known invalid ones
-  const isInvalidProtocol = invalidProtocols.some((protocol) =>
-    url.protocol.startsWith(protocol)
-  );
+  const isInvalidProtocol = invalidProtocols.some(protocol => url.protocol.startsWith(protocol));
 
   return !isInvalidHostname && !isInvalidProtocol;
 };
 
-const evaluateTab = (tabId) => {
-  chrome.tabs.get(tabId, (tab) => {
+const evaluateTab = tabId => {
+  chrome.tabs.get(tabId, tab => {
     if (chrome.runtime.lastError || !tab) {
       console.warn(`Cannot evaluate tab: No tab with id ${tabId}`);
       return;
@@ -126,30 +111,26 @@ const evaluateTab = (tabId) => {
         chrome.scripting.executeScript(
           {
             target: { tabId },
-            files: ["content.js"],
+            files: ['content.js'],
           },
           () => {
-            chrome.tabs.sendMessage(
-              tabId,
-              { action: "checkForTailwindCSS" },
-              (response) => {
-                if (chrome.runtime.lastError) {
-                  console.error("Error sending message to tab:", chrome.runtime.lastError.message);
-                  clearBadge(tabId);
-                } else {
-                  console.log(`Response from content script for ${domain}:`, response);
-                  if (response && typeof response.hasTailwindCSS !== "undefined") {
-                    updateCacheAndBadge(domain, tabId, response.hasTailwindCSS, response.tailwindVersion);
-                  }
+            chrome.tabs.sendMessage(tabId, { action: 'checkForTailwindCSS' }, response => {
+              if (chrome.runtime.lastError) {
+                console.error('Error sending message to tab:', chrome.runtime.lastError.message);
+                clearBadge(tabId);
+              } else {
+                console.log(`Response from content script for ${domain}:`, response);
+                if (response && typeof response.hasTailwindCSS !== 'undefined') {
+                  updateCacheAndBadge(domain, tabId, response.hasTailwindCSS, response.tailwindVersion);
                 }
               }
-            );
+            });
           }
         );
       }
     } else {
       clearBadge(tabId);
-      console.log(`Skipping tab with URL: ${tab ? tab.url : "unknown"}`);
+      console.log(`Skipping tab with URL: ${tab ? tab.url : 'unknown'}`);
     }
   });
 };
@@ -157,11 +138,11 @@ const evaluateTab = (tabId) => {
 // Event listeners
 chrome.tabs.onActivated.addListener(({ tabId }) => evaluateTab(tabId));
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete") {
+  if (changeInfo.status === 'complete') {
     evaluateTab(tabId);
   }
 });
-chrome.tabs.onRemoved.addListener((tabId) => {
+chrome.tabs.onRemoved.addListener(tabId => {
   clearBadge(tabId);
   const domain = Object.keys(domainCache).find(domain => domainCache[domain].tabId === tabId);
   if (domain) {
@@ -170,24 +151,24 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 // Create an alarm to reset the cache every two weeks
-chrome.alarms.create("resetCacheAlarm", { periodInMinutes: 20160 });
+chrome.alarms.create('resetCacheAlarm', { periodInMinutes: 20160 });
 
 // Listen for the cache reset alarm
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "resetCacheAlarm") {
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'resetCacheAlarm') {
     resetCache();
   }
 });
 
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("Message received in background script:", message);
+  console.log('Message received in background script:', message);
 
   if (message.requestUpdate) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (tabs.length > 0) {
         const tabId = tabs[0].id;
-        chrome.tabs.get(tabId, (tab) => {
+        chrome.tabs.get(tabId, tab => {
           if (tab?.url) {
             const domain = getDomain(tab.url);
             if (domain && domainCache[domain]) {
@@ -198,22 +179,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               evaluateTab(tabId);
               sendResponse({
                 hasTailwindCSS: false,
-                tailwindVersion: "unknown",
+                tailwindVersion: 'unknown',
               });
             }
           }
         });
       } else {
-        console.log("No active tab available");
+        console.log('No active tab available');
       }
     });
     return true; // To allow asynchronous `sendResponse`
   }
 
-  if (typeof message.hasTailwindCSS !== "undefined") {
+  if (typeof message.hasTailwindCSS !== 'undefined') {
     const tabId = sender.tab?.id;
     if (tabId) {
-      chrome.tabs.get(tabId, (tab) => {
+      chrome.tabs.get(tabId, tab => {
         if (tab.url) {
           const domain = getDomain(tab.url);
           if (domain) {
@@ -223,8 +204,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     }
   } else {
-    console.log("Invalid message received");
+    console.log('Invalid message received');
   }
-  sendResponse({ status: "done" });
+  sendResponse({ status: 'done' });
   return true; // Ensure the sendResponse is maintained
 });
