@@ -5,6 +5,12 @@ const log = (...args) => {
   }
 };
 
+const warn = (...args) => {
+  if (DEBUG) {
+    console.warn(...args);
+  }
+};
+
 const CACHE_STORAGE_KEY = 'domainCacheV1';
 
 const cacheStorage = chrome.storage.session || chrome.storage.local;
@@ -71,7 +77,7 @@ const updateCacheAndBadge = (domain, tabId, hasTailwindCSS, tailwindVersion) => 
 const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = 'unknown') => {
   chrome.tabs.get(tabId, tab => {
     if (chrome.runtime.lastError || !tab) {
-      console.warn(`Cannot update badge: No tab with id ${tabId}`);
+      warn(`Cannot update badge: No tab with id ${tabId}`);
       return;
     }
 
@@ -99,7 +105,7 @@ const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = 'unknown') => {
 const clearBadge = tabId => {
   chrome.tabs.get(tabId, tab => {
     if (chrome.runtime.lastError || !tab) {
-      console.warn(`Cannot clear badge: No tab with id ${tabId}`);
+      warn(`Cannot clear badge: No tab with id ${tabId}`);
       return;
     }
     chrome.action.setBadgeText({ tabId, text: '' });
@@ -184,7 +190,7 @@ const evaluateTab = tabId => {
   ensureHydrated().then(() => {
     chrome.tabs.get(tabId, tab => {
       if (chrome.runtime.lastError || !tab) {
-        console.warn(`Cannot evaluate tab: No tab with id ${tabId}`);
+        warn(`Cannot evaluate tab: No tab with id ${tabId}`);
         return;
       }
       if (isValidUrl(tab)) {
@@ -300,22 +306,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       });
     });
-    return true;
-  }
-
-  if (typeof message.hasTailwindCSS !== 'undefined') {
-    const tabId = sender.tab?.id;
-    if (tabId) {
-      chrome.tabs.get(tabId, tab => {
-        if (tab.url) {
-          const domain = getDomain(tab.url);
-          if (domain) {
-            updateCacheAndBadge(domain, tabId, message.hasTailwindCSS, message.tailwindVersion);
-          }
-        }
-      });
-    }
-    sendResponse({ status: 'done' });
     return true;
   }
 

@@ -14,7 +14,21 @@
 
   const MAX_STYLESHEET_CHECKS = 24;
   const FETCH_CONCURRENCY = 3;
+  const FETCH_TIMEOUT_MS = 7000;
   const MAX_DOM_NODES_TO_SCAN = 8000;
+
+  const fetchWithTimeout = async (href, ms) => {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      return fetch(href, { signal: AbortSignal.timeout(ms) });
+    }
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms);
+    try {
+      return await fetch(href, { signal: controller.signal });
+    } finally {
+      clearTimeout(id);
+    }
+  };
 
   const isTailwindCssText = text => {
     if (!text || typeof text !== 'string') {
@@ -48,7 +62,7 @@
 
   const isTailwindStylesheet = async href => {
     try {
-      const response = await fetch(href);
+      const response = await fetchWithTimeout(href, FETCH_TIMEOUT_MS);
       const text = await response.text();
       return {
         containsTailwindClass: isTailwindCssText(text),
@@ -83,11 +97,29 @@
   };
 
   const checkStylesheetsForTailwind = async () => {
+    const pageOrigin = window.location.origin;
     const sheets = Array.from(document.styleSheets).filter(sheet => sheet?.href);
-    const hrefs = sheets
+    let hrefs = sheets
       .map(s => s.href)
-      .filter(h => /\.css($|\?)/i.test(h) || h.includes('.css?'))
-      .slice(0, MAX_STYLESHEET_CHECKS);
+      .filter(h => /\.css($|\?)/i.test(h) || h.includes('.css?'));
+
+    hrefs.sort((a, b) => {
+      let sameA = 1;
+      let sameB = 1;
+      try {
+        sameA = new URL(a).origin === pageOrigin ? 0 : 1;
+      } catch (_) {
+        /* ignore */
+      }
+      try {
+        sameB = new URL(b).origin === pageOrigin ? 0 : 1;
+      } catch (_) {
+        /* ignore */
+      }
+      return sameA - sameB;
+    });
+
+    hrefs = hrefs.slice(0, MAX_STYLESHEET_CHECKS);
 
     const results = await runPool(hrefs, FETCH_CONCURRENCY, async href => {
       const result = await isTailwindStylesheet(href);
@@ -140,36 +172,18 @@
 
     const { hasTailwindCSSInStylesheets, tailwindVersion } = await checkStylesheetsForTailwind();
     if (hasTailwindCSSInStylesheets) {
-      const result = { hasTailwindCSS: true, tailwindVersion };
-      sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
-      return result;
+      return { hasTailwindCSS: true, tailwindVersion };
     }
 
     if (checkStyleTagsForTailwind()) {
-      const result = { hasTailwindCSS: true, tailwindVersion: 'unknown' };
-      sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
-      return result;
+      return { hasTailwindCSS: true, tailwindVersion: 'unknown' };
     }
 
     if (checkElementsForTailwind()) {
-      const result = { hasTailwindCSS: true, tailwindVersion: 'unknown' };
-      sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
-      return result;
+      return { hasTailwindCSS: true, tailwindVersion: 'unknown' };
     }
 
-    const result = { hasTailwindCSS: false, tailwindVersion: 'unknown' };
-    sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
-    return result;
-  };
-
-  const sendTailwindStatus = (hasTailwindCSS, tailwindVersion) => {
-    chrome.runtime.sendMessage({ status: 'CSS Check Done', hasTailwindCSS, tailwindVersion }, response => {
-      if (chrome.runtime.lastError) {
-        console.error('Error sending message:', chrome.runtime.lastError.message);
-      } else {
-        log('Final detection result sent, response:', response);
-      }
-    });
+    return { hasTailwindCSS: false, tailwindVersion: 'unknown' };
   };
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
