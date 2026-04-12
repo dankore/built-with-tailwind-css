@@ -26,13 +26,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
-          name: Release v${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           artifacts: "build/built-with-tailwind-css.zip"
           replacesArtifacts: true
           draft: false
           prerelease: false
           allowUpdates: true
           body: |
-            **New Release v${{ github.ref_name }} - Built with Tailwind CSS**
+            **New Release ${{ github.ref_name }} - Built with Tailwind CSS**
             - Built with Tailwind CSS is a Chrome Extension that identifies the usage of Tailwind CSS in web pages.
             - Includes the latest updates to the Built with Tailwind CSS extension.
