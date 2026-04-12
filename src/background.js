@@ -39,6 +39,28 @@ const getDomain = url => {
   }
 };
 
+/** Chrome’s action badge only fits ~4 visible characters; shorten so digits aren’t clipped. */
+const BADGE_TEXT_MAX = 4;
+
+const formatBadgeVersion = tailwindVersion => {
+  if (!tailwindVersion || tailwindVersion === 'unknown') {
+    return 'UN';
+  }
+  const s = String(tailwindVersion).trim();
+  const parts = s.split('.').filter(p => p.length > 0);
+  if (parts.length >= 2) {
+    const majorMinor = `${parts[0]}.${parts[1]}`;
+    if (majorMinor.length <= BADGE_TEXT_MAX) {
+      return majorMinor;
+    }
+    return majorMinor.slice(0, BADGE_TEXT_MAX);
+  }
+  if (s.length <= BADGE_TEXT_MAX) {
+    return s;
+  }
+  return s.slice(0, BADGE_TEXT_MAX);
+};
+
 const updateCacheAndBadge = (domain, tabId, hasTailwindCSS, tailwindVersion) => {
   domainCache[domain] = { hasTailwindCSS, tailwindVersion };
   log(`Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`);
@@ -55,11 +77,7 @@ const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = 'unknown') => {
 
     let badgeText = '';
     if (hasTailwindCSS) {
-      if (tailwindVersion === 'unknown') {
-        badgeText = 'UN';
-      } else {
-        badgeText = `${tailwindVersion}`;
-      }
+      badgeText = formatBadgeVersion(tailwindVersion);
     }
 
     const badgeBackgroundColor = hasTailwindCSS ? '#0ea5e9' : '#888';
