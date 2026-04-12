@@ -1,0 +1,7 @@
+Built with Tailwind CSS tells you whether the site you’re on uses Tailwind CSS—and when possible, which version—without leaving the page. It’s for developers, designers, and anyone curious how a site is styled.
+
+Open the popup to see a clear yes/no style result, the current site’s hostname, and a refresh if you want to scan again. A small badge on the extension icon can show a short version hint when Tailwind is found (Chrome only fits a few characters there). You can switch light or dark theme for the popup.
+
+Everything runs in your browser: it inspects stylesheets and related page content to detect Tailwind-style signals. Results are cached per domain on your device so repeat visits stay snappy; cache can reset on a long schedule. No accounts, no tracking, and nothing is sent to us—this is an open-source tool you can review on GitHub: https://github.com/dankore/built-with-tailwind-css
+
+If you work with Tailwind or compare sites often, install it to get an instant read on Tailwind usage while you browse.
