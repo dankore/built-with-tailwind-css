@@ -86,26 +86,31 @@
     const { hasTailwindCSSInStylesheets, tailwindVersion } = await checkStylesheetsForTailwind();
     if (hasTailwindCSSInStylesheets) {
       console.log('Tailwind CSS found in stylesheets:', { tailwindVersion });
-      sendTailwindStatus(true, tailwindVersion);
-      return;
+      const result = { hasTailwindCSS: true, tailwindVersion };
+      sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
+      return result;
     }
 
     // Check style tags next
     if (checkStyleTagsForTailwind()) {
       console.log('Tailwind CSS found in style tags');
-      sendTailwindStatus(true, 'unknown');
-      return;
+      const result = { hasTailwindCSS: true, tailwindVersion: 'unknown' };
+      sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
+      return result;
     }
 
     // Finally, check HTML elements
     if (checkElementsForTailwind()) {
       console.log('Tailwind CSS found in HTML attributes');
-      sendTailwindStatus(true, 'unknown');
-      return;
+      const result = { hasTailwindCSS: true, tailwindVersion: 'unknown' };
+      sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
+      return result;
     }
 
     console.log('Tailwind CSS not found');
-    sendTailwindStatus(false, 'unknown');
+    const result = { hasTailwindCSS: false, tailwindVersion: 'unknown' };
+    sendTailwindStatus(result.hasTailwindCSS, result.tailwindVersion);
+    return result;
   };
 
   const sendTailwindStatus = (hasTailwindCSS, tailwindVersion) => {
@@ -123,7 +128,7 @@
     console.log('Message received in content.js:', message);
 
     if (message.action === 'checkForTailwindCSS') {
-      checkForTailwindCSS().then(() => sendResponse({ status: 'CSS Check Initiated' }));
+      checkForTailwindCSS().then(result => sendResponse(result));
     } else {
       console.log('Unknown action:', message.action);
     }

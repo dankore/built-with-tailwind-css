@@ -166,27 +166,57 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.requestUpdate) {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      if (tabs.length > 0) {
-        const tabId = tabs[0].id;
-        chrome.tabs.get(tabId, tab => {
-          if (tab?.url) {
-            const domain = getDomain(tab.url);
-            if (domain && domainCache[domain]) {
-              console.log(`Popup Cache hit: ${domain}`);
-              sendResponse(domainCache[domain]);
-            } else {
-              console.log(`Popup Cache miss: ${domain}`);
-              evaluateTab(tabId);
-              sendResponse({
-                hasTailwindCSS: false,
-                tailwindVersion: 'unknown',
-              });
-            }
-          }
-        });
-      } else {
+      if (tabs.length === 0) {
         console.log('No active tab available');
+        sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
+        return;
       }
+      const tabId = tabs[0].id;
+      chrome.tabs.get(tabId, tab => {
+        if (!tab?.url) {
+          sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
+          return;
+        }
+        const domain = getDomain(tab.url);
+        if (domain && domainCache[domain]) {
+          console.log(`Popup Cache hit: ${domain}`);
+          sendResponse(domainCache[domain]);
+          return;
+        }
+        console.log(`Popup Cache miss: ${domain}`);
+        if (!isValidUrl(tab)) {
+          sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
+          return;
+        }
+        chrome.scripting.executeScript(
+          {
+            target: { tabId },
+            files: ['content.js'],
+          },
+          () => {
+            if (chrome.runtime.lastError) {
+              console.error('Error injecting content script:', chrome.runtime.lastError.message);
+              sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
+              return;
+            }
+            chrome.tabs.sendMessage(tabId, { action: 'checkForTailwindCSS' }, response => {
+              if (chrome.runtime.lastError) {
+                console.error('Error sending message to tab:', chrome.runtime.lastError.message);
+                sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
+                return;
+              }
+              if (response && typeof response.hasTailwindCSS !== 'undefined') {
+                sendResponse({
+                  hasTailwindCSS: response.hasTailwindCSS,
+                  tailwindVersion: response.tailwindVersion ?? 'unknown',
+                });
+              } else {
+                sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
+              }
+            });
+          }
+        );
+      });
     });
     return true; // To allow asynchronous `sendResponse`
   }
