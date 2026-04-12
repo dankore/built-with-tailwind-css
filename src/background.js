@@ -1,7 +1,34 @@
-// Cache for Tailwind detection results (domain -> { hasTailwindCSS, tailwindVersion })
-const domainCache = {};
+const DEBUG = false;
+const log = (...args) => {
+  if (DEBUG) {
+    console.log(...args);
+  }
+};
 
-// Helper functions
+const CACHE_STORAGE_KEY = 'domainCacheV1';
+
+const cacheStorage = chrome.storage.session || chrome.storage.local;
+
+let domainCache = {};
+let hydratePromise = null;
+
+const ensureHydrated = () => {
+  if (!hydratePromise) {
+    hydratePromise = cacheStorage.get(CACHE_STORAGE_KEY).then(result => {
+      const raw = result[CACHE_STORAGE_KEY];
+      if (raw && typeof raw === 'object') {
+        domainCache = { ...raw };
+      }
+    });
+  }
+  return hydratePromise;
+};
+
+const persistDomainCache = () =>
+  cacheStorage.set({ [CACHE_STORAGE_KEY]: domainCache }).catch(err => {
+    console.error('Failed to persist domain cache:', err);
+  });
+
 const getDomain = url => {
   try {
     const { hostname } = new URL(url);
@@ -14,7 +41,8 @@ const getDomain = url => {
 
 const updateCacheAndBadge = (domain, tabId, hasTailwindCSS, tailwindVersion) => {
   domainCache[domain] = { hasTailwindCSS, tailwindVersion };
-  console.log(`Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`);
+  log(`Updated cache for ${domain}: ${hasTailwindCSS}, version: ${tailwindVersion}`);
+  persistDomainCache();
   updateBadge(tabId, hasTailwindCSS, tailwindVersion);
 };
 
@@ -63,10 +91,10 @@ const clearBadge = tabId => {
 };
 
 const resetCache = () => {
-  Object.keys(domainCache).forEach(domain => {
-    delete domainCache[domain];
-  });
-  console.log('Cache reset successfully via scheduled alarm');
+  domainCache = {};
+  hydratePromise = null;
+  cacheStorage.remove(CACHE_STORAGE_KEY).catch(() => {});
+  log('Cache reset successfully via scheduled alarm');
   chrome.tabs.query({}, tabs => {
     tabs.forEach(tab => clearBadge(tab.id));
   });
@@ -80,145 +108,181 @@ const isValidUrl = tab => {
   const url = new URL(tab.url);
   const hostname = url.hostname;
 
-  // List of hostnames that are known to be invalid for scripting
   const invalidHostnames = ['chrome.google.com', 'chromewebstore.google.com'];
-
-  // Check if the hostname is one of the known invalid ones
   const isInvalidHostname = invalidHostnames.some(invalidHostname => hostname.endsWith(invalidHostname));
 
-  // List of protocols that are considered invalid for scripting
-  const invalidProtocols = ['chrome:', 'about:', 'data:', 'file:', 'blob:', 'devtools:', 'view-source:', 'javascript:', 'chrome-extension:', 'chrome-devtools:'];
-
-  // Check if the protocol is one of the known invalid ones
+  const invalidProtocols = [
+    'chrome:',
+    'about:',
+    'data:',
+    'file:',
+    'blob:',
+    'devtools:',
+    'view-source:',
+    'javascript:',
+    'chrome-extension:',
+    'chrome-devtools:',
+  ];
   const isInvalidProtocol = invalidProtocols.some(protocol => url.protocol.startsWith(protocol));
 
   return !isInvalidHostname && !isInvalidProtocol;
 };
 
-const evaluateTab = tabId => {
-  chrome.tabs.get(tabId, tab => {
-    if (chrome.runtime.lastError || !tab) {
-      console.warn(`Cannot evaluate tab: No tab with id ${tabId}`);
-      return;
-    }
-    if (isValidUrl(tab)) {
-      const domain = getDomain(tab.url);
-      if (domain && domainCache[domain]) {
-        console.log(`Cache hit: ${domain}`);
-        updateBadge(tabId, domainCache[domain].hasTailwindCSS, domainCache[domain].tailwindVersion);
-      } else {
-        console.log(`Cache miss: ${domain}`);
-        chrome.scripting.executeScript(
-          {
-            target: { tabId },
-            files: ['content.js'],
-          },
-          () => {
-            chrome.tabs.sendMessage(tabId, { action: 'checkForTailwindCSS' }, response => {
-              if (chrome.runtime.lastError) {
-                console.error('Error sending message to tab:', chrome.runtime.lastError.message);
-                clearBadge(tabId);
-              } else {
-                console.log(`Response from content script for ${domain}:`, response);
-                if (response && typeof response.hasTailwindCSS !== 'undefined') {
-                  updateCacheAndBadge(domain, tabId, response.hasTailwindCSS, response.tailwindVersion);
-                }
-              }
-            });
-          }
-        );
+const injectAndDetect = (tabId, domain, onResult) => {
+  chrome.scripting.executeScript(
+    {
+      target: { tabId },
+      files: ['content.js'],
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        log('Error injecting content script:', chrome.runtime.lastError.message);
+        onResult(null);
+        return;
       }
-    } else {
-      clearBadge(tabId);
-      console.log(`Skipping tab with URL: ${tab ? tab.url : 'unknown'}`);
+      chrome.tabs.sendMessage(tabId, { action: 'checkForTailwindCSS' }, response => {
+        if (chrome.runtime.lastError) {
+          log('Error sending message to tab:', chrome.runtime.lastError.message);
+          onResult(null);
+          return;
+        }
+        if (response && typeof response.hasTailwindCSS !== 'undefined') {
+          updateCacheAndBadge(
+            domain,
+            tabId,
+            response.hasTailwindCSS,
+            response.tailwindVersion ?? 'unknown'
+          );
+          onResult(response);
+        } else {
+          onResult(null);
+        }
+      });
     }
+  );
+};
+
+const evaluateTab = tabId => {
+  ensureHydrated().then(() => {
+    chrome.tabs.get(tabId, tab => {
+      if (chrome.runtime.lastError || !tab) {
+        console.warn(`Cannot evaluate tab: No tab with id ${tabId}`);
+        return;
+      }
+      if (isValidUrl(tab)) {
+        const domain = getDomain(tab.url);
+        if (domain && domainCache[domain]) {
+          log(`Cache hit: ${domain}`);
+          updateBadge(tabId, domainCache[domain].hasTailwindCSS, domainCache[domain].tailwindVersion);
+        } else if (domain) {
+          log(`Cache miss: ${domain}`);
+          injectAndDetect(tabId, domain, result => {
+            if (!result) {
+              clearBadge(tabId);
+            }
+          });
+        }
+      } else {
+        clearBadge(tabId);
+        log(`Skipping tab with URL: ${tab ? tab.url : 'unknown'}`);
+      }
+    });
   });
 };
 
-// Event listeners
 chrome.tabs.onActivated.addListener(({ tabId }) => evaluateTab(tabId));
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'complete') {
     evaluateTab(tabId);
   }
 });
 chrome.tabs.onRemoved.addListener(tabId => {
   clearBadge(tabId);
-  const domain = Object.keys(domainCache).find(domain => domainCache[domain].tabId === tabId);
-  if (domain) {
-    delete domainCache[domain];
-  }
 });
 
-// Create an alarm to reset the cache every two weeks
+chrome.runtime.onInstalled.addListener(() => {
+  hydratePromise = null;
+  ensureHydrated();
+});
+chrome.runtime.onStartup.addListener(() => {
+  hydratePromise = null;
+  ensureHydrated();
+});
+
 chrome.alarms.create('resetCacheAlarm', { periodInMinutes: 20160 });
 
-// Listen for the cache reset alarm
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'resetCacheAlarm') {
     resetCache();
   }
 });
 
-// Listen for messages from the popup
+ensureHydrated();
+
+const sendPopupPayload = (sendResponse, tab, result) => {
+  const hostname = tab?.url ? getDomain(tab.url) || '' : '';
+  if (result && typeof result.hasTailwindCSS !== 'undefined') {
+    sendResponse({
+      hasTailwindCSS: result.hasTailwindCSS,
+      tailwindVersion: result.tailwindVersion ?? 'unknown',
+      hostname,
+    });
+  } else {
+    sendResponse({
+      hasTailwindCSS: false,
+      tailwindVersion: 'unknown',
+      hostname,
+    });
+  }
+};
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Message received in background script:', message);
+  log('Message received in background script:', message);
 
   if (message.requestUpdate) {
-    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      if (tabs.length === 0) {
-        console.log('No active tab available');
-        sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
-        return;
-      }
-      const tabId = tabs[0].id;
-      chrome.tabs.get(tabId, tab => {
-        if (!tab?.url) {
-          sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
+    ensureHydrated().then(() => {
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (tabs.length === 0) {
+          log('No active tab available');
+          sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown', hostname: '' });
           return;
         }
-        const domain = getDomain(tab.url);
-        if (domain && domainCache[domain]) {
-          console.log(`Popup Cache hit: ${domain}`);
-          sendResponse(domainCache[domain]);
-          return;
-        }
-        console.log(`Popup Cache miss: ${domain}`);
-        if (!isValidUrl(tab)) {
-          sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
-          return;
-        }
-        chrome.scripting.executeScript(
-          {
-            target: { tabId },
-            files: ['content.js'],
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              console.error('Error injecting content script:', chrome.runtime.lastError.message);
-              sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
-              return;
-            }
-            chrome.tabs.sendMessage(tabId, { action: 'checkForTailwindCSS' }, response => {
-              if (chrome.runtime.lastError) {
-                console.error('Error sending message to tab:', chrome.runtime.lastError.message);
-                sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
-                return;
-              }
-              if (response && typeof response.hasTailwindCSS !== 'undefined') {
-                sendResponse({
-                  hasTailwindCSS: response.hasTailwindCSS,
-                  tailwindVersion: response.tailwindVersion ?? 'unknown',
-                });
-              } else {
-                sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown' });
-              }
-            });
+        const tabId = tabs[0].id;
+        chrome.tabs.get(tabId, tab => {
+          if (!tab?.url) {
+            sendResponse({ hasTailwindCSS: false, tailwindVersion: 'unknown', hostname: '' });
+            return;
           }
-        );
+          const domain = getDomain(tab.url);
+          const hostname = domain || '';
+          const bypass = Boolean(message.bypassCache);
+
+          if (!bypass && domain && domainCache[domain]) {
+            log(`Popup Cache hit: ${domain}`);
+            sendResponse({
+              ...domainCache[domain],
+              hostname,
+            });
+            return;
+          }
+
+          log(`Popup Cache miss or refresh: ${domain}`);
+          if (!isValidUrl(tab)) {
+            sendPopupPayload(sendResponse, tab, null);
+            return;
+          }
+          if (!domain) {
+            sendPopupPayload(sendResponse, tab, null);
+            return;
+          }
+
+          injectAndDetect(tabId, domain, result => {
+            sendPopupPayload(sendResponse, tab, result);
+          });
+        });
       });
     });
-    return true; // To allow asynchronous `sendResponse`
+    return true;
   }
 
   if (typeof message.hasTailwindCSS !== 'undefined') {
@@ -233,9 +297,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
     }
-  } else {
-    console.log('Invalid message received');
+    sendResponse({ status: 'done' });
+    return true;
   }
-  sendResponse({ status: 'done' });
-  return true; // Ensure the sendResponse is maintained
+
+  sendResponse({ status: 'ignored' });
+  return false;
 });

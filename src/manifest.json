@@ -1,7 +1,7 @@
 {
   "name": "Built with Tailwind CSS",
   "description": "Built with Tailwind CSS is a Chrome Extension that identifies the usage of Tailwind CSS in web pages.",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js"
@@ -11,14 +11,9 @@
   ],
   "permissions": [
     "alarms",
+    "storage",
     "tabs",
     "scripting"
-  ],
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
   ],
   "action": {
     "default_popup": "popup.html",

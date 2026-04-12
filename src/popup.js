@@ -1,8 +1,24 @@
 const tailwindIcon = document.getElementById("has-tailwind-icon");
 const fallbackIcon = document.getElementById("fallback-icon");
 const messageElement = document.getElementById("message");
+const hostnameElement = document.getElementById("hostname");
+const loadingPanel = document.getElementById("loading-panel");
+const logoEl = document.getElementById("logo");
+const refreshButton = document.getElementById("refresh");
 
-const updateUI = (hasTailwindCSS, tailwindVersion) => {
+const setLoading = (isLoading) => {
+  loadingPanel.classList.toggle("is-hidden", !isLoading);
+  logoEl.classList.toggle("is-hidden", isLoading);
+  messageElement.classList.toggle("is-hidden", isLoading);
+  refreshButton.disabled = isLoading;
+};
+
+const updateUI = (hasTailwindCSS, tailwindVersion, hostname) => {
+  if (hostnameElement) {
+    const label = hostname && hostname.trim() ? hostname.trim() : "—";
+    hostnameElement.textContent = label;
+  }
+
   if (messageElement) {
     messageElement.textContent = hasTailwindCSS
       ? tailwindVersion === "unknown"
@@ -20,33 +36,41 @@ const updateUI = (hasTailwindCSS, tailwindVersion) => {
   }
 };
 
-// Request Tailwind CSS status from the background script
-chrome.runtime.sendMessage({ requestUpdate: true }, (response) => {
-  updateUI(response.hasTailwindCSS, response.tailwindVersion);
+const requestStatus = (bypassCache) => {
+  setLoading(true);
+  chrome.runtime.sendMessage({ requestUpdate: true, bypassCache: Boolean(bypassCache) }, (response) => {
+    setLoading(false);
+    if (chrome.runtime.lastError) {
+      updateUI(false, "unknown", "");
+      if (messageElement) {
+        messageElement.textContent = "Could not read this page";
+      }
+      return;
+    }
+    updateUI(response.hasTailwindCSS, response.tailwindVersion, response.hostname);
+  });
+};
+
+requestStatus(false);
+
+refreshButton.addEventListener("click", () => {
+  requestStatus(true);
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("Message received in popup script:", message);
-
   if (typeof message.hasTailwindCSS !== "undefined") {
-    updateUI(message.hasTailwindCSS, message.tailwindVersion);
+    updateUI(message.hasTailwindCSS, message.tailwindVersion, hostnameElement?.textContent || "");
     sendResponse({ message: "Popup received the message" });
-  } else {
-    console.log("Invalid message received");
   }
-
-  return true; // Ensure the sendResponse is maintained
+  return true;
 });
 
-// Toggle theme and persist selection
 const themeToggle = document.getElementById("theme-toggle");
 const body = document.body;
 
-// Set initial theme based on local storage
 const savedTheme = localStorage.getItem("theme") || "light";
 body.dataset.theme = savedTheme;
 
-// Switch icons based on the theme
 function updateToggleIcon() {
   if (body.dataset.theme === "dark") {
     themeToggle.innerHTML = `

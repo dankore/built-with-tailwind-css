@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Built with Tailwind CSS</title>
   <style>
     body {
@@ -36,6 +37,41 @@
       font-weight: bold;
       margin: 15px 0;
       color: var(--highlight-color);
+    }
+
+    #hostname {
+      font-size: 12px;
+      color: var(--footer-color);
+      margin: 0 0 8px;
+      word-break: break-all;
+      line-height: 1.3;
+    }
+
+    #loading-panel {
+      font-size: 14px;
+      color: var(--footer-color);
+      margin: 12px 0;
+    }
+
+    #refresh {
+      margin-top: 12px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid var(--highlight-color);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--highlight-color);
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    #refresh:hover {
+      background: var(--highlight-color);
+      color: var(--card-bg);
+    }
+
+    .is-hidden {
+      display: none !important;
     }
 
     footer {
@@ -108,7 +144,9 @@
   </svg>
 
   <div class="card">
-    <div id="logo">
+    <div id="hostname" aria-live="polite"></div>
+    <div id="loading-panel">Checking page…</div>
+    <div id="logo" class="is-hidden">
       <!-- Has Tailwind CSS Icon -->
       <svg xmlns="http://www.w3.org/2000/svg"
            xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -143,11 +181,12 @@
         <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0ZM4.285 12.433a.5.5 0 0 1-.707.707A6.967 6.967 0 0 1 1 8a6.967 6.967 0 0 1 2.578-5.14.5.5 0 1 1 .707.707A5.967 5.967 0 0 0 2 8c0 1.534.576 2.94 1.578 4.026a.5.5 0 0 1 .707.707Zm7.845.707a.5.5 0 1 1-.707-.707A5.967 5.967 0 0 0 14 8a5.967 5.967 0 0 0-1.578-4.026.5.5 0 1 1 .707-.707A6.967 6.967 0 0 1 15 8a6.967 6.967 0 0 1-2.578 5.14ZM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/>
       </svg>
     </div>
-    <div id="message">Tailwind CSS v3.1.8</div>
+    <div id="message" class="is-hidden">Checking…</div>
+    <button type="button" id="refresh" title="Re-scan this page (ignore cache)">Refresh</button>
   </div>
   <footer>
     Built with Tailwind CSS Extension<br /><br />
-    <a href="https://github.com/dankore/built-with-tailwind-css" target="_blank">View Source on GitHub</a>
+    <a href="https://github.com/dankore/built-with-tailwind-css" target="_blank" rel="noopener noreferrer">View Source on GitHub</a>
   </footer>
   <script src="popup.js"></script>
 </body>
