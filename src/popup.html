@@ -143,6 +143,12 @@
       text-decoration: underline;
     }
 
+    footer a:focus-visible {
+      outline: 2px solid var(--highlight-color);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
     /* Light Theme */
     :root {
       --background-color: #f9fafb;
@@ -217,7 +223,8 @@
   </div>
   <footer>
     Built with Tailwind CSS Extension<br /><br />
-    <a href="https://github.com/dankore/built-with-tailwind-css" target="_blank" rel="noopener noreferrer">View Source on GitHub</a>
+    <a href="https://github.com/dankore/built-with-tailwind-css" target="_blank" rel="noopener noreferrer">View Source on GitHub</a><br /><br />
+    <a href="mailto:adamu@dankoresoft.com">Hire me</a>
   </footer>
   <script src="popup.js"></script>
 </body>
