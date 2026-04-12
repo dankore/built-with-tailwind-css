@@ -18,14 +18,15 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "/images/built-with-tailwindcss16.png",
-      "32": "/images/built-with-tailwindcss32.png",
-      "128": "/images/built-with-tailwindcss128.png"
+      "16": "images/built-with-tailwindcss16.png",
+      "32": "images/built-with-tailwindcss16.png",
+      "128": "images/built-with-tailwindcss128.png"
     }
   },
   "icons": {
-    "16": "/images/built-with-tailwindcss16.png",
-    "32": "/images/built-with-tailwindcss32.png",
-    "128": "/images/built-with-tailwindcss128.png"
+    "16": "images/built-with-tailwindcss16.png",
+    "32": "images/built-with-tailwindcss16.png",
+    "48": "images/built-with-tailwindcss128.png",
+    "128": "images/built-with-tailwindcss128.png"
   }
 }
