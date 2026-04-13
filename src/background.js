@@ -14,13 +14,94 @@ const warn = (...args) => {
 const CACHE_STORAGE_KEY = 'domainCacheV1';
 
 const cacheStorage = chrome.storage.session || chrome.storage.local;
+const actionApi = chrome.action || chrome.browserAction;
+
+const storageGet = keyOrKeys => {
+  try {
+    const maybePromise = cacheStorage.get(keyOrKeys);
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      return maybePromise;
+    }
+  } catch (_) {
+    // Fall through to callback form.
+  }
+  return new Promise((resolve, reject) => {
+    cacheStorage.get(keyOrKeys, result => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve(result || {});
+    });
+  });
+};
+
+const storageSet = items => {
+  try {
+    const maybePromise = cacheStorage.set(items);
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      return maybePromise;
+    }
+  } catch (_) {
+    // Fall through to callback form.
+  }
+  return new Promise((resolve, reject) => {
+    cacheStorage.set(items, () => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve();
+    });
+  });
+};
+
+const storageRemove = keyOrKeys => {
+  try {
+    const maybePromise = cacheStorage.remove(keyOrKeys);
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      return maybePromise;
+    }
+  } catch (_) {
+    // Fall through to callback form.
+  }
+  return new Promise((resolve, reject) => {
+    cacheStorage.remove(keyOrKeys, () => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve();
+    });
+  });
+};
+
+const executeContentScript = (tabId, file, done) => {
+  if (chrome.scripting?.executeScript) {
+    chrome.scripting.executeScript(
+      {
+        target: { tabId },
+        files: [file],
+      },
+      done
+    );
+    return;
+  }
+
+  if (chrome.tabs.executeScript) {
+    chrome.tabs.executeScript(tabId, { file }, () => done());
+    return;
+  }
+
+  done();
+};
 
 let domainCache = {};
 let hydratePromise = null;
 
 const ensureHydrated = () => {
   if (!hydratePromise) {
-    hydratePromise = cacheStorage.get(CACHE_STORAGE_KEY).then(result => {
+    hydratePromise = storageGet(CACHE_STORAGE_KEY).then(result => {
       const raw = result[CACHE_STORAGE_KEY];
       if (raw && typeof raw === 'object') {
         domainCache = { ...raw };
@@ -31,7 +112,7 @@ const ensureHydrated = () => {
 };
 
 const persistDomainCache = () =>
-  cacheStorage.set({ [CACHE_STORAGE_KEY]: domainCache }).catch(err => {
+  storageSet({ [CACHE_STORAGE_KEY]: domainCache }).catch(err => {
     console.error('Failed to persist domain cache:', err);
   });
 
@@ -89,15 +170,15 @@ const updateBadge = (tabId, hasTailwindCSS, tailwindVersion = 'unknown') => {
     const badgeBackgroundColor = hasTailwindCSS ? '#0ea5e9' : '#888';
     const badgeTextColor = '#ffffff';
 
-    chrome.action.setBadgeText({ tabId, text: badgeText });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
-    chrome.action.setTitle({
+    actionApi.setBadgeText({ tabId, text: badgeText });
+    actionApi.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
+    actionApi.setTitle({
       tabId,
       title: hasTailwindCSS ? `Tailwind CSS v${tailwindVersion}` : 'This website is not using Tailwind CSS',
     });
 
-    if (chrome.action.setBadgeTextColor) {
-      chrome.action.setBadgeTextColor({ tabId, color: badgeTextColor });
+    if (actionApi.setBadgeTextColor) {
+      actionApi.setBadgeTextColor({ tabId, color: badgeTextColor });
     }
   });
 };
@@ -108,16 +189,16 @@ const clearBadge = tabId => {
       warn(`Cannot clear badge: No tab with id ${tabId}`);
       return;
     }
-    chrome.action.setBadgeText({ tabId, text: '' });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: '#888' });
-    chrome.action.setTitle({ tabId, title: 'Built with Tailwind CSS' });
+    actionApi.setBadgeText({ tabId, text: '' });
+    actionApi.setBadgeBackgroundColor({ tabId, color: '#888' });
+    actionApi.setTitle({ tabId, title: 'Built with Tailwind CSS' });
   });
 };
 
 const resetCache = () => {
   domainCache = {};
   hydratePromise = null;
-  cacheStorage.remove(CACHE_STORAGE_KEY).catch(() => {});
+  storageRemove(CACHE_STORAGE_KEY).catch(() => {});
   log('Cache reset successfully via scheduled alarm');
   chrome.tabs.query({}, tabs => {
     tabs.forEach(tab => clearBadge(tab.id));
@@ -153,37 +234,31 @@ const isValidUrl = tab => {
 };
 
 const injectAndDetect = (tabId, domain, onResult) => {
-  chrome.scripting.executeScript(
-    {
-      target: { tabId },
-      files: ['content.js'],
-    },
-    () => {
+  executeContentScript(tabId, 'content.js', () => {
+    if (chrome.runtime.lastError) {
+      log('Error injecting content script:', chrome.runtime.lastError.message);
+      onResult(null);
+      return;
+    }
+    chrome.tabs.sendMessage(tabId, { action: 'checkForTailwindCSS' }, response => {
       if (chrome.runtime.lastError) {
-        log('Error injecting content script:', chrome.runtime.lastError.message);
+        log('Error sending message to tab:', chrome.runtime.lastError.message);
         onResult(null);
         return;
       }
-      chrome.tabs.sendMessage(tabId, { action: 'checkForTailwindCSS' }, response => {
-        if (chrome.runtime.lastError) {
-          log('Error sending message to tab:', chrome.runtime.lastError.message);
-          onResult(null);
-          return;
-        }
-        if (response && typeof response.hasTailwindCSS !== 'undefined') {
-          updateCacheAndBadge(
-            domain,
-            tabId,
-            response.hasTailwindCSS,
-            response.tailwindVersion ?? 'unknown'
-          );
-          onResult(response);
-        } else {
-          onResult(null);
-        }
-      });
-    }
-  );
+      if (response && typeof response.hasTailwindCSS !== 'undefined') {
+        updateCacheAndBadge(
+          domain,
+          tabId,
+          response.hasTailwindCSS,
+          response.tailwindVersion ?? 'unknown'
+        );
+        onResult(response);
+      } else {
+        onResult(null);
+      }
+    });
+  });
 };
 
 const evaluateTab = tabId => {
