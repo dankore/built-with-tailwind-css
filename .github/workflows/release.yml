@@ -18,7 +18,13 @@ jobs:
 
       - name: Get version
         id: get_version
-        run: echo "version=$(python3 -c \"import json;print(json.load(open('src/manifest.json'))['version'])\")" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(python3 - <<'PY'
+          import json
+          print(json.load(open('src/manifest.json'))['version'])
+          PY
+          )
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create Zip Archive
         run: |
