@@ -1,7 +1,7 @@
 {
   "name": "Built with Tailwind CSS",
   "description": "Built with Tailwind CSS is a Firefox Extension that identifies the usage of Tailwind CSS in web pages.",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "manifest_version": 2,
   "background": {
     "scripts": [
